@@ -90,7 +90,8 @@ else
     cd /tmp
     rm -rf cachyos-repo cachyos-repo.tar.xz
     ok "Repos CachyOS configurados correctamente"
-fi# ════════════════════════════════════════════════════════════
+fi
+# ════════════════════════════════════════════════════════════
 section "3. Kernels: CachyOS + LTS"
 # ════════════════════════════════════════════════════════════
 info "Instalando linux-cachyos y linux-lts..."
