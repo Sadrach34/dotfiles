@@ -447,6 +447,7 @@ if [ -d "$DOTFILES_DIR" ]; then
 
     git --git-dir="$DOTFILES_DIR/" fetch origin main
     git --git-dir="$DOTFILES_DIR/" reset --hard FETCH_HEAD
+    
 # ════════════════════════════════════════════════════════════
 section "12. Clonando y aplicando dotfiles"
 # ════════════════════════════════════════════════════════════
@@ -462,23 +463,12 @@ else
     git clone --bare "$DOTFILES_REPO" "$DOTFILES_DIR"
 fi
 
-# Backup rápido (opcional pero recomendado)
-BACKUP_DIR="$HOME/.dotfiles-backup-$(date +%Y%m%d%H%M%S)"
-mkdir -p "$BACKUP_DIR"
-
-info "Respaldando configuraciones existentes..."
-[ -d "$HOME/.config" ] && cp -r "$HOME/.config" "$BACKUP_DIR/"
-[ -f "$HOME/.zshrc" ] && cp "$HOME/.zshrc" "$BACKUP_DIR/"
-
-# Aplicar dotfiles (forzado)
 info "Aplicando dotfiles (modo forzado)..."
 git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" checkout -f
 
-# Ocultar archivos no trackeados
 git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" config status.showUntrackedFiles no
 
 ok "Dotfiles aplicados correctamente"
-
 # ════════════════════════════════════════════════════════════
 section "13. Alias dotfiles en zsh"
 # ════════════════════════════════════════════════════════════
