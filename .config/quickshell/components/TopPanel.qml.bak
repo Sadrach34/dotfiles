@@ -1,0 +1,89 @@
+import Quickshell
+import Quickshell.Wayland
+import QtQuick
+import QtQuick.Layouts
+import "./toppanel"
+
+// Panel que baja desde arriba. Toggle: qs ipc call toppanel toggle
+PanelWindow {
+    id: topPanel
+
+    anchors { top: true; left: true; right: true }
+    implicitHeight: 500
+    color: "transparent"
+    exclusionMode: ExclusionMode.Ignore
+    focusable: true
+
+    WlrLayershell.keyboardFocus: root.topPanelVisible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.layer: WlrLayer.Overlay
+    margins.top: root.topPanelVisible ? 48 : -(implicitHeight + 12)
+    Behavior on margins.top { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
+    Rectangle {
+        anchors.fill: parent
+        anchors.leftMargin: 60
+        anchors.rightMargin: 60
+        color: "#0d0d0d"
+        radius: 16
+        border.width: 1
+        border.color: "#2a2a2a"
+        focus: root.topPanelVisible
+        clip: true
+
+        Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Escape) {
+                root.topPanelVisible = false
+                event.accepted = true
+            }
+        }
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: 0
+            spacing: 0
+
+            // ── 1. Notas ─────────────────────────────────────────────────────
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                color: "#0d0d0d"
+                radius: 16
+                Rectangle {
+                    anchors { top: parent.top; bottom: parent.bottom; left: parent.left }
+                    width: parent.radius
+                    color: parent.color
+                }
+                Rectangle {
+                    anchors { top: parent.top; bottom: parent.bottom; right: parent.right }
+                    width: parent.radius
+                    color: parent.color
+                }
+                NotesWidget {
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    expanded:     true
+                    panelVisible: root.topPanelVisible
+                }
+            }
+
+            Rectangle { width: 1; Layout.fillHeight: true; Layout.topMargin: 12; Layout.bottomMargin: 12; color: "#1e1e1e" }
+
+            // ── 3. Volumen (faders verticales) ───────────────────────────────
+            Rectangle {
+                Layout.preferredWidth: 280   // ← cambia este valor para ajustar el ancho
+                Layout.fillHeight: true
+                color: "#0b0b0b"
+                radius: 16
+                Rectangle {
+                    anchors { top: parent.top; bottom: parent.bottom; left: parent.left }
+                    width: parent.radius
+                    color: parent.color
+                }
+                AppVolumeWidget {
+                    anchors.fill: parent
+                    anchors.margins: 14
+                }
+            }
+        }
+    }
+}

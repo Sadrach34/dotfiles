@@ -1,0 +1,15 @@
+singleton Screenshot 1.0 Screenshot.qml
+singleton ScreenRecorder 1.0 ScreenRecorder.qml
+singleton Colors 1.0 Colors.qml
+singleton Icons 1.0 Icons.qml
+singleton Styling 1.0 Styling.qml
+singleton SsState 1.0 SsState.qml
+singleton Config 1.0 SsConfig.qml
+ScreenshotTool 1.0 ScreenshotTool.qml
+ScreenshotOverlay 1.0 ScreenshotOverlay.qml
+ScreenrecordTool 1.0 ScreenrecordTool.qml
+ActionGrid 1.0 ActionGrid.qml
+StyledRect 1.0 StyledRect.qml
+StyledToolTip 1.0 StyledToolTip.qml
+Separator 1.0 Separator.qml
+RecordingIndicator 1.0 RecordingIndicator.qml

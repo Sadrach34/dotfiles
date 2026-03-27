@@ -1,0 +1,24 @@
+//* ---- 💫 https://github.com/JaKooLit 💫 ---- *//
+/* Waybar Modules Extras */
+
+/* This is where you can add Extra Modules you wish. copy.sh will try to restore*/
+/* this file along with the unique configs and styles. */
+/* IMPORTANT, be mindful with , or ". else waybar will not start */
+
+{
+
+"custom/qs_dashboard": {
+        "format": "☰",
+        "on-click": "quickshell ipc call dashboard toggle",
+        "tooltip": true,
+        "tooltip-format": "QuickShell Dashboard"
+},
+
+"custom/qs_dashboard_top": {
+        "format": "☰",
+        "on-click": "quickshell ipc call toppanel toggle",
+        "tooltip": true,
+        "tooltip-format": "QuickShell Dashboard"
+}
+
+}

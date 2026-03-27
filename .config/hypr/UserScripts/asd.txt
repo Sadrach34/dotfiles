@@ -1,0 +1,813 @@
+╭─sadrach@arcEsc ~  
+╰─➤  yay -S swww-git mpvpaper                                                            127 ↵
+ -> Ningún paquete del AUR para swww-git
+AUR Explicit (1): mpvpaper-1.8-1
+:: (1/1) PKGBUILD Descargado : mpvpaper
+  1 mpvpaper                         (Archivos de compilación existen)
+==> ¿Paquetes a limpiar antes de compilar?
+==> [N]inguno [A]Todos [Ab]ortar [I]nstalados [No]Instalados o (1 2 3, 1-3, ^4)
+==> 
+  1 mpvpaper                         (Archivos de compilación existen)
+==> ¿Diffs a mostrar?
+==> [N]inguno [A]Todos [Ab]ortar [I]nstalados [No]Instalados o (1 2 3, 1-3, ^4)
+==> 
+==> Creando el paquete: mpvpaper 1.8-1 (mié 28 ene 2026 16:59:47)
+==> Recibiendo las fuentes...
+  -> Descargando mpvpaper-1.8.tar.gz...
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0
+100  90036   0  90036   0      0 126.8k      0                              0
+==> ADVERTENCIA: Omitiendo la verificación de las firmas PGP de las fuentes.
+==> Validando los archivos source con b2sums...
+    mpvpaper-1.8.tar.gz ... Aprobado
+:: (1/1) Analizando SRCINFO: mpvpaper
+==> Creando el paquete: mpvpaper 1.8-1 (mié 28 ene 2026 16:59:49)
+==> Comprobando dependencias mientras se ejecuta...
+==> Comprobando dependencias mientras se compila...
+==> Recibiendo las fuentes...
+  -> mpvpaper-1.8.tar.gz ha sido encontrado
+==> Validando los archivos source con b2sums...
+    mpvpaper-1.8.tar.gz ... Aprobado
+==> Eliminando el directorio $srcdir/...
+==> Extrayendo las fuentes...
+  -> Extrayendo mpvpaper-1.8.tar.gz con bsdtar
+==> Las fuentes están listas.
+==> Creando el paquete: mpvpaper 1.8-1 (mié 28 ene 2026 16:59:51)
+==> Comprobando dependencias mientras se ejecuta...
+==> Comprobando dependencias mientras se compila...
+==> ADVERTENCIA: Usando el árbol existente $srcdir/
+==> Iniciando build()...
++ exec meson setup --prefix /usr --libexecdir lib --sbindir bin --buildtype plain --auto-features enabled --wrap-mode nodownload -D b_pie=true -D python.bytecompile=1 mpvpaper-1.8 build
+The Meson build system
+Version: 1.10.1
+Source dir: /home/sadrach/.cache/yay/mpvpaper/src/mpvpaper-1.8
+Build dir: /home/sadrach/.cache/yay/mpvpaper/src/build
+Build type: native build
+Project name: mpvpaper
+Project version: undefined
+C compiler for the host machine: cc (gcc 15.2.1 "cc (GCC) 15.2.1 20260103")
+C linker for the host machine: cc ld.bfd 2.45.1
+Host machine cpu family: x86_64
+Host machine cpu: x86_64
+Library dl found: YES
+Found pkg-config: YES (/usr/bin/pkg-config) 2.5.1
+Run-time dependency wayland-protocols found: YES 1.47
+Run-time dependency wayland-client found: YES 1.24.0
+Run-time dependency wayland-egl found: YES 18.1.0
+Run-time dependency egl found: YES 1.5
+Run-time dependency mpv found: YES 2.5.0
+Run-time dependency threads found: YES
+Program wayland-scanner found: YES (/usr/bin/wayland-scanner)
+mpvpaper-1.8/meson.build:18: WARNING: Project does not target a minimum version but uses feature deprecated since '0.56.0': dependency.get_pkgconfig_variable. use dependency.get_variable(pkgconfig : ...) instead
+Library rt found: YES
+Build targets in project: 3
+WARNING: Deprecated features used:
+ * 0.56.0: {'dependency.get_pkgconfig_variable'}
+
+mpvpaper undefined
+
+  User defined options
+    auto_features     : enabled
+    b_pie             : true
+    buildtype         : plain
+    libexecdir        : lib
+    prefix            : /usr
+    python.bytecompile: 1
+    sbindir           : bin
+    wrap_mode         : nodownload
+
+Found ninja-1.13.2 at /usr/bin/ninja
+INFO: autodetecting backend as ninja                                                           
+INFO: calculating backend command to run: /usr/bin/ninja -C /home/sadrach/.cache/yay/mpvpaper/src/build
+ninja: Entering directory `/home/sadrach/.cache/yay/mpvpaper/src/build'
+[14/14] Linking target mpvpaper
+==> Entrando en entorno fakeroot...
+==> Iniciando package()...
+ninja: Entering directory `/home/sadrach/.cache/yay/mpvpaper/src/build'
+ninja: no work to do.
+Installing mpvpaper to /home/sadrach/.cache/yay/mpvpaper/pkg/mpvpaper/usr/bin
+Installing mpvpaper-holder to /home/sadrach/.cache/yay/mpvpaper/pkg/mpvpaper/usr/bin
+install: creando el directorio '/home/sadrach/.cache/yay/mpvpaper/pkg/mpvpaper/usr/share'
+install: creando el directorio '/home/sadrach/.cache/yay/mpvpaper/pkg/mpvpaper/usr/share/man'
+install: creando el directorio '/home/sadrach/.cache/yay/mpvpaper/pkg/mpvpaper/usr/share/man/man1'
+'mpvpaper-1.8/mpvpaper.man' -> '/home/sadrach/.cache/yay/mpvpaper/pkg/mpvpaper/usr/share/man/man1/mpvpaper.1'
+==> Depurando la instalación...
+  -> Quitando los archivos libtool...
+  -> Quitando los archivos de las bibliotecas estáticas...
+  -> Purgando los archivos innecesarios...
+  -> Despojando los símbolos innecesarios de los binarios y de las bibliotecas...
+  -> Comprimiendo las páginas del manual y de información...
+==> Buscando problemas de empaquetado...
+==> Creando el paquete «mpvpaper»...
+  -> Generando el archivo .PKGINFO...
+  -> Generando el archivo .BUILDINFO...
+  -> Generando el archivo .MTREE...
+  -> Comprimiendo el paquete...
+==> Creando el paquete «mpvpaper-debug»...
+  -> Generando el archivo .PKGINFO...
+  -> Generando el archivo .BUILDINFO...
+  -> Generando el archivo .MTREE...
+  -> Comprimiendo el paquete...
+==> Abandonando el entorno fakeroot.
+==> Compilación terminada: mpvpaper 1.8-1 (mié 28 ene 2026 16:59:56)
+==> Limpiando...
+[sudo] contraseña para sadrach: 
+cargando los paquetes...
+resolviendo dependencias...
+buscando conflictos entre paquetes...
+
+Paquete (2)     Versión nueva  Diferencia neta
+
+mpvpaper        1.8-1                 0.09 MiB
+mpvpaper-debug  1.8-1                 0.69 MiB
+
+Tamaño total de la instalación:  0.78 MiB
+
+:: ¿Continuar con la instalación? [S/n] s
+(2/2) comprobando las claves del depósito                 [------------------------------] 100%
+(2/2) verificando la integridad de los paquetes           [------------------------------] 100%
+(2/2) cargando los archivos de los paquetes               [------------------------------] 100%
+(2/2) comprobando conflictos entre archivos               [------------------------------] 100%
+(2/2) comprobando el espacio disponible en el disco       [------------------------------] 100%
+:: Procesando los cambios de los paquetes...
+(1/2) instalando mpvpaper                                 [------------------------------] 100%
+Dependencias opcionales para mpvpaper
+    socat: control via sockets [instalado]
+(2/2) instalando mpvpaper-debug                           [------------------------------] 100%
+:: Ejecutando los «hooks» de posinstalación...
+(1/1) Arming ConditionNeedsUpdate...
+╭─sadrach@arcEsc ~  
+╰─➤  ~/.config/hypr/UserScripts/WallpaperAutoChangeMixed.sh ~/Pictures/wallpapers
+=== Iniciando cambio automático de wallpapers (mixto) ===
+Directorio: /home/sadrach/Pictures/wallpapers
+Intervalo: 900 segundos
+Encontrados 309 archivos (imágenes + videos)
+🖼️  Aplicando IMAGEN: 94.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+^C%                                                                                            ╭─sadrach@arcEsc ~  
+╰─➤  ~/.config/hypr/UserScripts/WallpaperAutoChangeMixed.sh ~/Pictures/wallpapers        130 ↵
+=== Iniciando cambio automático de wallpapers (mixto) ===
+Directorio: /home/sadrach/Pictures/wallpapers
+Intervalo: 5 segundos
+Encontrados 309 archivos (imágenes + videos)
+🖼️  Aplicando IMAGEN: 94.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 8.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 136.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 146.jpg
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 123.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 111.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+^C%                                                                                            ╭─sadrach@arcEsc ~  
+╰─➤  ~/.config/hypr/UserScripts/WallpaperAutoChangeMixed.sh ~/Pictures/wallpapers        130 ↵
+=== Iniciando cambio automático de wallpapers (mixto) ===
+Directorio: /home/sadrach/Pictures/wallpapers
+Intervalo: 2 segundos
+Encontrados 309 archivos (imágenes + videos)
+🖼️  Aplicando IMAGEN: 46.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 131.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 8.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 55.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 32.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 28.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 119.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 24.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 97.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 112.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 145.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 132.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 133.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 28.png
+error: invalid value '/home/sadrach/Pictures/wallpapers/28.png' for '<IMAGE>': Path '/home/sadrach/Pictures/wallpapers/28.png' does not exist
+
+For more information, try '--help'.
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 62.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 104.png
+Error: "failed to read file: No such file or directory (os error 2)"
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 60.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 37.png
+error: invalid value '/home/sadrach/Pictures/wallpapers/37.png' for '<IMAGE>': Path '/home/sadrach/Pictures/wallpapers/37.png' does not exist
+
+For more information, try '--help'.
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 33.png
+error: invalid value '/home/sadrach/Pictures/wallpapers/33.png' for '<IMAGE>': Path '/home/sadrach/Pictures/wallpapers/33.png' does not exist
+
+For more information, try '--help'.
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 80.png
+error: invalid value '/home/sadrach/Pictures/wallpapers/80.png' for '<IMAGE>': Path '/home/sadrach/Pictures/wallpapers/80.png' does not exist
+
+For more information, try '--help'.
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 29.png
+error: invalid value '/home/sadrach/Pictures/wallpapers/29.png' for '<IMAGE>': Path '/home/sadrach/Pictures/wallpapers/29.png' does not exist
+
+For more information, try '--help'.
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 15.png
+error: invalid value '/home/sadrach/Pictures/wallpapers/15.png' for '<IMAGE>': Path '/home/sadrach/Pictures/wallpapers/15.png' does not exist
+
+For more information, try '--help'.
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 33.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 65.png
+error: invalid value '/home/sadrach/Pictures/wallpapers/65.png' for '<IMAGE>': Path '/home/sadrach/Pictures/wallpapers/65.png' does not exist
+
+For more information, try '--help'.
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+^C%                                                                                            ╭─sadrach@arcEsc ~  
+╰─➤  ~/.config/hypr/UserScripts/WallpaperAutoChangeMixed.sh ~/Pictures/wallpapers        130 ↵
+=== Iniciando cambio automático de wallpapers (mixto) ===
+Directorio: /home/sadrach/Pictures/wallpapers
+Intervalo: 2 segundos
+Encontrados 309 archivos (imágenes + videos)
+🖼️  Aplicando IMAGEN: 18.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 4.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 120.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 94.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 115.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 34.png
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 21.png
+error: invalid value '/home/sadrach/Pictures/wallpapers/asd\/21.png' for '<IMAGE>': Path '/home/sadrach/Pictures/wallpapers/asd\/21.png' does not exist
+
+For more information, try '--help'.
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 87.png
+^[[Aerror: invalid value '/home/sadrach/Pictures/wallpapers/asd\/87.png' for '<IMAGE>': Path '/home/sadrach/Pictures/wallpapers/asd\/87.png' does not exist
+
+For more information, try '--help'.
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🖼️  Aplicando IMAGEN: 84.png
+error: invalid value '/home/sadrach/Pictures/wallpapers/carpeta sin anime/84.png' for '<IMAGE>': Path '/home/sadrach/Pictures/wallpapers/carpeta sin anime/84.png' does not exist
+
+For more information, try '--help'.
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+^C%                                                                                            ╭─sadrach@arcEsc ~  
+╰─➤  ~/.config/hypr/UserScripts/WallpaperAutoChangeMixed.sh ~/Pictures/wallpapers        130 ↵
+=== Iniciando cambio automático de wallpapers (mixto) ===
+Directorio: /home/sadrach/Pictures/wallpapers
+Intervalo: 2 segundos
+Encontrados 2 archivos (imágenes + videos)
+🖼️  Aplicando IMAGEN: 156.jpg
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🎬 Aplicando VIDEO: skeleton.mp4
+Cannot load libcuda.so.1
+● Video  --vid=1  (h264 2560x1440 30 fps) [default]
+VO: [libmpv] 2560x1440 yuv420p
+V: 00:00:03 / 00:00:12 (31%)Encontrados 2 archivos (imágenes + videos)
+🖼️  Aplicando IMAGEN: 156.jpg
+
+Iniciando swww-daemon...
+WARNING: xrgb is deprecated. Use `--format argb` instead.
+Note this is the default, so you can also just omit it.
+        41ms [INFO]  BumpPool with: 1 buffers. Size: 8100Kb
+        61ms [WARN]  We failed to find wayland buffer with id: 16. This should be impossible.
+      1029ms [INFO]  BumpPool with: 1 buffers. Size: 8100Kb
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+      1048ms [WARN]  We failed to find wayland buffer with id: 10. This should be impossible.
+HDMI-A-1
+/home/sadrach/.cache/swww/HDMI-A-1
+grep: /home/sadrach/.cache/swww/HDMI-A-1: coincidencia en fichero binario
+
+ln: fallo al crear el enlace simbólico '/home/sadrach/.config/rofi/.current_wallpaper' -> '': No existe el fichero o el directorio
+cp: no se puede efectuar `stat' sobre '': No existe el fichero o el directorio
+ok
+🎬 Aplicando VIDEO: skeleton.mp4
+      5066ms [INFO]  Removed socket at "/run/user/1000/wayland-1-swww-daemon..sock"
+      5066ms [INFO]  Goodbye!
+Cannot load libcuda.so.1
+● Video  --vid=1  (h264 2560x1440 30 fps) [default]
+VO: [libmpv] 2560x1440 yuv420p
+V: 00:00:03 / 00:00:12 (31%)Encontrados 2 archivos (imágenes + videos)
+🎬 Aplicando VIDEO: skeleton.mp4
+V: 00:00:04 / 00:00:12 (36%)
+^C%                                                                                            Cannot load libcuda.so.1
+● Video  --vid=1  (h264 2560x1440 30 fps) [default]
+╭─sadrach@arcEsc ~  
+╰─➤  mpvpaper: ../mpv/misc/dispatch.c:276: mp_dispatch_queue_process: Assertion `!queue->in_process' failed.

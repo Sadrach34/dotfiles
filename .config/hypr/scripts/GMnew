@@ -1,0 +1,63 @@
+#!/bin/bash
+# GMnew wrapper:
+# - Reusa GameMode.sh para TODO lo visual/wallpapers (ruta estable)
+# - Agrega control de scheduler para integracion con TopPanel/Win+G
+
+set -u
+
+BASE_GM_SCRIPT="$HOME/.config/hypr/scripts/GameMode.sh"
+BASE_LOCK_FILE="/tmp/gamemode.lock"
+
+is_on() {
+  [ -f "$BASE_LOCK_FILE" ]
+}
+
+apply_scheduler_from_state() {
+  if is_on; then
+    scxctl switch --sched flash >/dev/null 2>&1 || true
+  else
+    scxctl switch --sched bpfland >/dev/null 2>&1 || true
+  fi
+}
+
+toggle_once() {
+  if [ -x "$BASE_GM_SCRIPT" ]; then
+    "$BASE_GM_SCRIPT" >/dev/null 2>&1 || true
+  else
+    echo "GameMode base script not executable: $BASE_GM_SCRIPT" >&2
+    exit 1
+  fi
+  apply_scheduler_from_state
+}
+
+cmd="${1:-toggle}"
+case "$cmd" in
+  toggle)
+    toggle_once
+    ;;
+  on)
+    if ! is_on; then
+      toggle_once
+    else
+      apply_scheduler_from_state
+    fi
+    ;;
+  off)
+    if is_on; then
+      toggle_once
+    else
+      apply_scheduler_from_state
+    fi
+    ;;
+  status)
+    if is_on; then
+      echo "on"
+    else
+      echo "off"
+    fi
+    ;;
+  *)
+    echo "Usage: $0 {toggle|on|off|status}" >&2
+    exit 2
+    ;;
+esac
