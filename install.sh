@@ -78,35 +78,19 @@ section "2. Repositorios CachyOS"
 if grep -q "\[cachyos\]" /etc/pacman.conf 2>/dev/null; then
     ok "Repos CachyOS ya presentes"
 else
-    info "Instalando CachyOS keyring..."
+    info "Descargando e instalando repositorios oficiales de CachyOS..."
     cd /tmp
-    git clone https://aur.archlinux.org/cachyos-keyring.git --depth=1
-    cd cachyos-keyring && makepkg -si --noconfirm && cd /tmp
-
-    info "Instalando CachyOS mirrorlist..."
-    git clone https://aur.archlinux.org/cachyos-mirrorlist.git --depth=1
-    cd cachyos-mirrorlist && makepkg -si --noconfirm && cd /tmp
-
-    info "Instalando CachyOS v3-mirrorlist..."
-    git clone https://aur.archlinux.org/cachyos-v3-mirrorlist.git --depth=1
-    cd cachyos-v3-mirrorlist && makepkg -si --noconfirm && cd /tmp
-
-    info "Configurando pacman.conf..."
-    sudo tee -a /etc/pacman.conf > /dev/null << 'PACMANEOF'
-
-# CachyOS repos
-[cachyos-v3]
-Include = /etc/pacman.d/cachyos-v3-mirrorlist
-
-[cachyos]
-Include = /etc/pacman.d/cachyos-mirrorlist
-PACMANEOF
-
-    sudo pacman -Syu --noconfirm
-    ok "Repos CachyOS configurados"
-fi
-
-# ════════════════════════════════════════════════════════════
+    curl https://mirror.cachyos.org/cachyos-repo.tar.xz -o cachyos-repo.tar.xz
+    tar xvf cachyos-repo.tar.xz
+    cd cachyos-repo
+    
+    # El script de CachyOS instala el keyring, los mirrors e inyecta la config en pacman.conf
+    sudo ./cachyos-repo.sh
+    
+    cd /tmp
+    rm -rf cachyos-repo cachyos-repo.tar.xz
+    ok "Repos CachyOS configurados correctamente"
+fi# ════════════════════════════════════════════════════════════
 section "3. Kernels: CachyOS + LTS"
 # ════════════════════════════════════════════════════════════
 info "Instalando linux-cachyos y linux-lts..."
