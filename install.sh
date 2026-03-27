@@ -188,7 +188,14 @@ ok "I/O scheduler: bfq"
 
 # ananicy-cpp + reglas CachyOS
 info "ananicy-cpp + cachyos-ananicy-rules..."
-sudo pacman -S --needed --noconfirm ananicy-cpp cachyos-ananicy-rules
+# Resolver conflicto de ananicy antes de instalar
+if [ -f /etc/ananicy.d/ananicy.conf ]; then
+    warn "Conflicto detectado: ananicy.conf ya existe → haciendo backup"
+    sudo mv /etc/ananicy.d/ananicy.conf /etc/ananicy.d/ananicy.conf.bak.$(date +%s)
+fi
+
+sudo pacman -S --needed --noconfirm ananicy-cpp cachyos-ananicy-rules || \
+    error "Fallo instalando ananicy"
 ok "ananicy-cpp listo"
 
 # zram: swap comprimido en RAM
