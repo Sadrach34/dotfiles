@@ -441,34 +441,37 @@ done
 section "12. Clonando y aplicando dotfiles"
 # ════════════════════════════════════════════════════════════
 
-# Si ya existe el repo → actualizar en vez de volver a clonar
 if [ -d "$DOTFILES_DIR" ]; then
     warn "Dotfiles ya existen — actualizando..."
 
-    git --git-dir="$DOTFILES_DIR/" fetch origin main
-    git --git-dir="$DOTFILES_DIR/" reset --hard FETCH_HEAD
-    
-# ════════════════════════════════════════════════════════════
-section "12. Clonando y aplicando dotfiles"
-# ════════════════════════════════════════════════════════════
-
-if [ -d "$DOTFILES_DIR" ]; then
-    warn "Dotfiles ya existen — actualizando..."
-
-    git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" fetch origin main
-    git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" reset --hard FETCH_HEAD
+    git --git-dir="$DOTFILES_DIR" --work-tree="$HOME" fetch origin
 
 else
     info "Clonando dotfiles desde GitHub..."
     git clone --bare "$DOTFILES_REPO" "$DOTFILES_DIR"
 fi
 
-info "Aplicando dotfiles (modo forzado)..."
-git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" checkout -f
+info "Aplicando dotfiles (forzado)..."
 
-git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" config status.showUntrackedFiles no
+# backup automático de conflictos
+mkdir -p "$HOME/.dotfiles-backup"
+
+git --git-dir="$DOTFILES_DIR" --work-tree="$HOME" checkout 2>&1 | while read -r line; do
+    if [[ "$line" == *"would be overwritten"* ]]; then
+        file=$(echo "$line" | awk '{print $1}')
+        mkdir -p "$HOME/.dotfiles-backup/$(dirname "$file")"
+        mv "$HOME/$file" "$HOME/.dotfiles-backup/$file"
+        warn "Movido a backup: $file"
+    fi
+done
+
+# ahora sí forzar
+git --git-dir="$DOTFILES_DIR" --work-tree="$HOME" checkout -f
+
+git --git-dir="$DOTFILES_DIR" --work-tree="$HOME" config status.showUntrackedFiles no
 
 ok "Dotfiles aplicados correctamente"
+
 # ════════════════════════════════════════════════════════════
 section "13. Alias dotfiles en zsh"
 # ════════════════════════════════════════════════════════════
