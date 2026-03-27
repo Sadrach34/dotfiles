@@ -440,50 +440,61 @@ done
 # ════════════════════════════════════════════════════════════
 section "12. Clonando y aplicando dotfiles"
 # ════════════════════════════════════════════════════════════
-if [ -d "$DOTFILES_DIR" ]; then
-    warn "Ya existe $DOTFILES_DIR — haciendo backup..."
-    mv "$DOTFILES_DIR" "${DOTFILES_DIR}.bak.$(date +%Y%m%d%H%M%S)"
-fi
 
-info "Clonando dotfiles desde GitHub..."
-git clone --bare "$DOTFILES_REPO" "$DOTFILES_DIR"
-
-# Backup automático de lo que choque
 BACKUP_DIR="$HOME/.dotfiles-backup-$(date +%Y%m%d%H%M%S)"
 mkdir -p "$BACKUP_DIR"
 
-info "Detectando conflictos..."
-git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" checkout 2>&1 \
-    | grep -E "ya existe|already exists|overwrite" \
-    | awk '{print $1}' \
-    | while read -r file; do
-        mkdir -p "$BACKUP_DIR/$(dirname "$file")"
-        mv "$HOME/$file" "$BACKUP_DIR/$file" 2>/dev/null || true
-    done
+# ───────────────────────────────────────────────────────────
+# 1. Clonar o actualizar repo
+# ───────────────────────────────────────────────────────────
+if [ -d "$DOTFILES_DIR" ]; then
+    warn "Dotfiles ya existen — actualizando..."
 
-info "Aplicando dotfiles..."
-git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" checkout
+    git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" fetch --all
+    git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" reset --hard origin/main
+
+else
+    info "Clonando dotfiles desde GitHub..."
+    git clone --bare "$DOTFILES_REPO" "$DOTFILES_DIR"
+fi
+
+# ───────────────────────────────────────────────────────────
+# 2. Backup global (simple y confiable)
+# ───────────────────────────────────────────────────────────
+info "Haciendo backup de configuraciones actuales..."
+
+[ -d "$HOME/.config" ] && cp -r "$HOME/.config" "$BACKUP_DIR/" 2>/dev/null
+[ -f "$HOME/.zshrc" ] && cp "$HOME/.zshrc" "$BACKUP_DIR/" 2>/dev/null
+
+ok "Backup guardado en: $BACKUP_DIR"
+
+# ───────────────────────────────────────────────────────────
+# 3. Aplicar dotfiles (FORZADO)
+# ───────────────────────────────────────────────────────────
+info "Aplicando dotfiles (modo forzado)..."
+
+git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" checkout -f
 git --git-dir="$DOTFILES_DIR/" --work-tree="$HOME" config status.showUntrackedFiles no
-ok "Dotfiles del escritorio aplicados"
 
-# Restaurar configs propias de la laptop
+ok "Dotfiles aplicados correctamente"
+
+# ───────────────────────────────────────────────────────────
+# 4. Restaurar configs propias de la laptop
+# ───────────────────────────────────────────────────────────
 info "Restaurando configs propias de la laptop..."
+
 for cfg in "$LAPTOP_BACKUP"/*/; do
     name=$(basename "$cfg")
     dest="$HOME/.config/$name"
-    # Solo restaurar si los dotfiles no trajeron esa carpeta
+
     if [ ! -e "$dest" ]; then
         cp -r "$cfg" "$dest"
         ok "Restaurado: $name"
     else
-        warn "$name ya existe en dotfiles, se mantiene la versión del escritorio"
-        warn "Tu versión anterior está en: $LAPTOP_BACKUP/$name"
+        warn "$name ya existe en dotfiles → se mantiene versión del repo"
+        warn "Backup en: $LAPTOP_BACKUP/$name"
     fi
 done
-
-if [ -d "$BACKUP_DIR" ] && [ "$(ls -A "$BACKUP_DIR" 2>/dev/null)" ]; then
-    warn "Configs previas con conflicto respaldadas en: $BACKUP_DIR"
-fi
 
 # ════════════════════════════════════════════════════════════
 section "13. Alias dotfiles en zsh"
