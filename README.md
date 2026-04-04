@@ -9,7 +9,7 @@
   ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝
 ```
 
-# sadrach34 / dotfiles
+# sadrach34 / Dotfiles
 
 **Hyprland · Arch Linux** — configuración personal para uso real, no para demos.
 
