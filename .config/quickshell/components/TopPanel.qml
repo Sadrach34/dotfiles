@@ -229,6 +229,7 @@ PanelWindow {
                 // ── Tab 0: Widgets — layout idéntico al WidgetsTab de ambxst ──────────
                 // FullPlayer | QuickControls+Calendar | NotificationHistory | Sliders verticales
                 TabPane {
+                    id: widgetsPane
                     paneIndex: 0
 
                     RowLayout {
@@ -279,6 +280,14 @@ PanelWindow {
                         AmbxstNotificationHistory {
                             Layout.fillWidth:  true
                             Layout.fillHeight: true
+                        }
+
+                        Rectangle { width: 1; Layout.fillHeight: true; color: topPanel.clrBorder }
+
+                        ClipboardWidget {
+                            Layout.preferredWidth: 300
+                            Layout.fillHeight: true
+                            active: widgetsPane.active && root.topPanelVisible
                         }
 
                         Rectangle { width: 1; Layout.fillHeight: true; color: topPanel.clrBorder }

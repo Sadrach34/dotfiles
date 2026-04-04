@@ -22,6 +22,7 @@ Scope {
   property string searchText: ""
   property string sourceFilter: ""
   property bool hoverSelectionEnabled: false
+  property bool appsLoadedOnce: false
 
   // Frequency-based search ranking
   property string freqCachePath: Quickshell.env("HOME") + "/.cache/quickshell/app-launcher/freq.json"
@@ -88,9 +89,11 @@ Scope {
         cardShowTimer.restart()
         hoverEnableTimer.restart()
         // Always refresh when opening so newly installed apps appear immediately.
-        loadApps.buf = ""
-        loadApps.running = false
-        loadApps.running = true
+        if (!loadApps.running) {
+          loadApps.buf = ""
+          loadApps.running = false
+          loadApps.running = true
+        }
       } else {
         appLauncher.cardVisible = false
         appLauncher.searchText = ""
@@ -100,6 +103,15 @@ Scope {
         sliceListView.lastMouseX = -1
         sliceListView.lastMouseY = -1
       }
+    }
+  }
+
+  Component.onCompleted: {
+    // Preload once at startup to avoid empty launcher on first open.
+    if (!appsLoadedOnce && !loadApps.running) {
+      loadApps.buf = ""
+      loadApps.running = false
+      loadApps.running = true
     }
   }
 
@@ -167,16 +179,19 @@ Scope {
     onExited: {
       try {
         var arr = JSON.parse(loadApps.buf.trim())
-        appModel.clear()
-        for (var i = 0; i < arr.length; i++) {
-          var a = arr[i]
-          appModel.append({
-            name: a.name||"", exec: a.exec||"", categories: a.categories||"",
-            iconPath: a.iconPath||"", terminal: a.terminal||false,
-            displayName: a.displayName||""
-          })
+        if (Array.isArray(arr) && arr.length >= 0) {
+          appModel.clear()
+          for (var i = 0; i < arr.length; i++) {
+            var a = arr[i]
+            appModel.append({
+              name: a.name||"", exec: a.exec||"", categories: a.categories||"",
+              iconPath: a.iconPath||"", terminal: a.terminal||false,
+              displayName: a.displayName||""
+            })
+          }
+          appsLoadedOnce = true
+          appLauncher.updateFilteredModel()
         }
-        appLauncher.updateFilteredModel()
       } catch(e) {}
       loadApps.buf = ""
     }
@@ -193,8 +208,11 @@ Scope {
       "\"$HOME/.local/share/flatpak/exports/share/applications\"; do " +
       "[ -d \"$d\" ] && dirs+=(\"$d\"); done; " +
       "[ ${#dirs[@]} -eq 0 ] && exit 1; " +
-      "exec inotifywait -m -r -e create,delete,modify,moved_to,moved_from " +
-      "--include '\\.desktop$' \"${dirs[@]}\""
+      "if command -v inotifywait >/dev/null 2>&1; then " +
+      "  exec inotifywait -m -r -e create,delete,modify,moved_to,moved_from --include '\\.desktop$' \"${dirs[@]}\"; " +
+      "else " +
+      "  while true; do sleep 12; echo poll; done; " +
+      "fi"
     ]
     stdout: SplitParser { onRead: line => desktopWatcherDebounce.restart() }
     onExited: desktopWatcherRestart.start()
@@ -210,9 +228,10 @@ Scope {
   // Debounce: agrupa cambios rápidos en una sola recarga
   Timer {
     id: desktopWatcherDebounce
-    interval: 2000
+    interval: 900
     onTriggered: {
-      appModel.clear()
+      loadApps.buf = ""
+      loadApps.running = false
       loadApps.running = true
     }
   }

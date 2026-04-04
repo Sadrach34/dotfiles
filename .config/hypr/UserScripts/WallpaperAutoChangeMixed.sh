@@ -40,13 +40,41 @@ trap 'handle_reset' SIGUSR2  # Señal para reiniciar el temporizador
 SCRIPTSDIR=$HOME/.config/hypr/scripts
 UserScripts=$HOME/.config/hypr/UserScripts
 wallust_refresh=$HOME/.config/hypr/scripts/RefreshNoWaybar.sh
+WALL_CMD=""
+WALL_DAEMON_CMD=""
+WALL_DAEMON_FORMAT=""
 
-focused_monitor=$(hyprctl monitors | awk '/^Monitor/{name=$2} /focused: yes/{print name}')
+detect_wall_backend() {
+    if command -v swww >/dev/null 2>&1 && command -v swww-daemon >/dev/null 2>&1; then
+        WALL_CMD="swww"
+        WALL_DAEMON_CMD="swww-daemon"
+        WALL_DAEMON_FORMAT="xrgb"
+        return 0
+    fi
+
+    if command -v awww >/dev/null 2>&1 && command -v awww-daemon >/dev/null 2>&1; then
+        WALL_CMD="awww"
+        WALL_DAEMON_CMD="awww-daemon"
+        WALL_DAEMON_FORMAT="argb"
+        return 0
+    fi
+
+    return 1
+}
+
+get_focused_monitor() {
+    hyprctl monitors 2>/dev/null | awk '/^Monitor/{name=$2} /focused: yes/{print name; exit}'
+}
 
 if [[ $# -lt 1 ]] || [[ ! -d $1 ]]; then
 	echo "Uso:"
 	echo "  $0 <directorio con imágenes y videos>"
 	exit 1
+fi
+
+if ! detect_wall_backend; then
+    echo "⚠️  ERROR: No se encontró backend para imágenes (swww/awww)."
+    echo "    Instala 'swww' o usa el paquete ya instalado 'awww' con su daemon."
 fi
 
 # Intervalo de cambio (en segundos)
@@ -71,6 +99,9 @@ kill_all_wallpaper_daemons() {
 # Función para aplicar imagen estática
 apply_static_wallpaper() {
     local image_path="$1"
+    local focused_monitor
+    local applied=false
+    local i
     
     # Verificar que el archivo existe
     if [[ ! -f "$image_path" ]]; then
@@ -83,14 +114,56 @@ apply_static_wallpaper() {
     sleep 0.3
     
     # Asegurar que swww-daemon está corriendo
-    if ! pgrep -x "swww-daemon" >/dev/null; then
-        echo "  → Iniciando swww-daemon..."
-        swww-daemon --format xrgb >/dev/null 2>&1 &
-        sleep 1
+    if [[ -z "$WALL_CMD" || -z "$WALL_DAEMON_CMD" ]]; then
+        if ! detect_wall_backend; then
+            echo "⚠️  ERROR: No hay backend disponible para imágenes"
+            return 1
+        fi
     fi
+
+    if ! pgrep -x "$WALL_DAEMON_CMD" >/dev/null; then
+        echo "  → Iniciando $WALL_DAEMON_CMD..."
+        "$WALL_DAEMON_CMD" --format "$WALL_DAEMON_FORMAT" >/dev/null 2>&1 &
+    fi
+
+    # Esperar a que swww-daemon quede realmente listo
+    for i in {1..20}; do
+        if "$WALL_CMD" query >/dev/null 2>&1; then
+            break
+        fi
+        sleep 0.2
+    done
+
+    if ! "$WALL_CMD" query >/dev/null 2>&1; then
+        echo "⚠️  ERROR: $WALL_DAEMON_CMD no responde para aplicar imagen"
+        return 1
+    fi
+
+    focused_monitor="$(get_focused_monitor)"
     
-    # Aplicar imagen
-    swww img -o "$focused_monitor" "$image_path" $SWWW_PARAMS 2>/dev/null
+    # Intentar primero al monitor enfocado; si falla, aplicar global
+    if [[ -n "$focused_monitor" ]]; then
+        if "$WALL_CMD" img -o "$focused_monitor" "$image_path" $SWWW_PARAMS >/dev/null 2>&1; then
+            applied=true
+        else
+            echo "  → Aviso: fallo en monitor '$focused_monitor', probando modo global"
+        fi
+    fi
+
+    if ! $applied; then
+        for i in {1..3}; do
+            if "$WALL_CMD" img "$image_path" $SWWW_PARAMS >/dev/null 2>&1; then
+                applied=true
+                break
+            fi
+            sleep 0.3
+        done
+    fi
+
+    if ! $applied; then
+        echo "⚠️  ERROR: No se pudo aplicar imagen con swww: $image_path"
+        return 1
+    fi
     
     # Regenerar colores y refrescar UI (solo para imágenes)
     "$SCRIPTSDIR/WallustSwww.sh" "$image_path" >/dev/null 2>&1
@@ -115,8 +188,16 @@ apply_animated_wallpaper() {
     fi
     
     # Matar swww y otros daemons
-    pkill -9 swww-daemon 2>/dev/null
-    swww kill 2>/dev/null
+    if [[ -z "$WALL_CMD" || -z "$WALL_DAEMON_CMD" ]]; then
+        detect_wall_backend || true
+    fi
+
+    if [[ -n "$WALL_CMD" ]]; then
+        "$WALL_CMD" kill 2>/dev/null
+    fi
+    if [[ -n "$WALL_DAEMON_CMD" ]]; then
+        pkill -x "$WALL_DAEMON_CMD" 2>/dev/null
+    fi
     kill_all_wallpaper_daemons
     sleep 0.5
     
@@ -125,6 +206,13 @@ apply_animated_wallpaper() {
     
     # Esperar un poco para que mpvpaper se inicialice
     sleep 1
+
+    if ! pgrep -x mpvpaper >/dev/null; then
+        echo "⚠️  ERROR: mpvpaper no logró iniciar con: $video_path"
+        return 1
+    fi
+
+    return 0
 }
 
 # Detectar tipo de archivo
@@ -148,6 +236,7 @@ while true; do
     mapfile -d '' all_files < <(
         find "$1" -type f \( \
             -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.bmp" -o -iname "*.gif" \
+            -o -iname "*.tga" -o -iname "*.tiff" -o -iname "*.pnm" -o -iname "*.ff" -o -iname "*.farbfeld" \
             -o -iname "*.mp4" -o -iname "*.mkv" -o -iname "*.mov" -o -iname "*.webm" -o -iname "*.avi" \
         \) -print0 | shuf -z
     )
@@ -183,7 +272,13 @@ while true; do
         # Determinar tipo y aplicar
         if is_video "$file"; then
             echo "🎬 VIDEO: $(basename "$file")"
-            apply_animated_wallpaper "$file"
+            apply_animated_wallpaper "$file" || {
+                echo "↩️  Fallback: intentando aplicar imagen para no quedar sin fondo"
+                mapfile -d '' fallback_images < <(find "$1" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.bmp" -o -iname "*.gif" -o -iname "*.tga" -o -iname "*.tiff" -o -iname "*.pnm" -o -iname "*.ff" -o -iname "*.farbfeld" \) -print0)
+                if [ ${#fallback_images[@]} -gt 0 ]; then
+                    apply_static_wallpaper "${fallback_images[0]}" || true
+                fi
+            }
         elif is_image "$file"; then
             echo "🖼️  IMAGEN: $(basename "$file")"
             apply_static_wallpaper "$file"

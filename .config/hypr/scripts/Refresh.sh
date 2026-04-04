@@ -29,7 +29,14 @@ killall -SIGUSR2 waybar
 #ags -q && ags &
 
 # quit quickshell & relaunch quickshell
-#pkill qs && qs &
+pkill -x quickshell 2>/dev/null
+pkill -x qs 2>/dev/null
+sleep 0.2
+if command -v quickshell >/dev/null 2>&1; then
+    nohup quickshell > /dev/null 2>&1 &
+elif command -v qs >/dev/null 2>&1; then
+    nohup qs > /dev/null 2>&1 &
+fi
 
 # some process to kill
 for pid in $(pidof waybar rofi swaync ags swaybg); do

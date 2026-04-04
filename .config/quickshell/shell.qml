@@ -59,6 +59,8 @@ ShellRoot {
     WallpaperPicker {}     // Selector de fondos: thumbnails 900×520, navegación
                            //   con teclado/scroll, aplica con swww
 
+    ModernClock {}
+
     // ── IPC Handlers ─────────────────────────────────────────────────────────
     // Exponen comandos que Hyprland puede llamar con:
     //   qs ipc call <target> <function>

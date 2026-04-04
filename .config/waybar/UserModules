@@ -9,14 +9,14 @@
 
 "custom/qs_dashboard": {
         "format": "☰",
-        "on-click": "quickshell ipc call dashboard toggle",
+        "on-click": "if pgrep -x quickshell >/dev/null; then qs ipc call dashboard toggle; else quickshell >/dev/null 2>&1 & sleep 0.6; qs ipc call dashboard toggle; fi",
         "tooltip": true,
         "tooltip-format": "QuickShell Dashboard"
 },
 
 "custom/qs_dashboard_top": {
         "format": "☰",
-        "on-click": "quickshell ipc call toppanel toggle",
+        "on-click": "if pgrep -x quickshell >/dev/null; then qs ipc call toppanel toggle; else quickshell >/dev/null 2>&1 & sleep 0.6; qs ipc call toppanel toggle; fi",
         "tooltip": true,
         "tooltip-format": "QuickShell Dashboard"
 }

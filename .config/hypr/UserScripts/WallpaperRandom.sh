@@ -1,28 +1,44 @@
-#!/bin/bash
-# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
-# Script for Random Wallpaper ( CTRL ALT W)
+#!/usr/bin/env bash
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */
+# Script for Random Wallpaper (CTRL ALT W / SUPER ALT W)
 
-wallDIR="$HOME/Pictures/wallpapers"
-SCRIPTSDIR="$HOME/.config/hypr/scripts"
+set -euo pipefail
 
-focused_monitor=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .name')
+WALL_DIR="$HOME/Pictures/wallpapers"
+APPLY_SCRIPT="$HOME/.config/hypr/UserScripts/WallpaperApply.sh"
 
-PICS=($(find -L ${wallDIR} -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.pnm" -o -name "*.tga" -o -name "*.tiff" -o -name "*.webp" -o -name "*.bmp" -o -name "*.farbfeld" -o -name "*.gif" \)))
-RANDOMPICS=${PICS[ $RANDOM % ${#PICS[@]} ]}
+if [[ ! -d "$WALL_DIR" ]]; then
+	echo "ERROR: wallpaper dir not found: $WALL_DIR" >&2
+	exit 1
+fi
 
+if [[ ! -x "$APPLY_SCRIPT" ]]; then
+	echo "ERROR: apply script missing or not executable: $APPLY_SCRIPT" >&2
+	exit 1
+fi
 
-# Transition config
-FPS=30
-TYPE="random"
-DURATION=1
-BEZIER=".43,1.19,1,.4"
-SWWW_PARAMS="--transition-fps $FPS --transition-type $TYPE --transition-duration $DURATION --transition-bezier $BEZIER"
+mapfile -d '' FILES < <(
+	find -L "$WALL_DIR" -type f \( \
+		-iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' -o \
+		-iname '*.bmp' -o -iname '*.gif' -o -iname '*.tga' -o -iname '*.tiff' -o \
+		-iname '*.pnm' -o -iname '*.farbfeld' -o \
+		-iname '*.mp4' -o -iname '*.mkv' -o -iname '*.mov' -o -iname '*.webm' -o -iname '*.avi' \
+	\) -print0
+)
 
+if (( ${#FILES[@]} == 0 )); then
+	echo "ERROR: no wallpapers found in $WALL_DIR" >&2
+	exit 1
+fi
 
-swww query || swww-daemon --format xrgb && swww img -o $focused_monitor ${RANDOMPICS} $SWWW_PARAMS
+idx=$(( RANDOM % ${#FILES[@]} ))
+RANDOM_FILE="${FILES[$idx]%$'\0'}"
+LOWER="${RANDOM_FILE,,}"
 
-wait $!
+TYPE="image"
+if [[ "$LOWER" == *.mp4 || "$LOWER" == *.mkv || "$LOWER" == *.mov || "$LOWER" == *.webm || "$LOWER" == *.avi ]]; then
+	TYPE="video"
+fi
 
-# Update rofi wallpaper link for quickshell overview after wallpaper is set
-ln -sf "${RANDOMPICS}" "$HOME/.config/rofi/.current_wallpaper"
+exec "$APPLY_SCRIPT" "$TYPE" "$RANDOM_FILE"
 
