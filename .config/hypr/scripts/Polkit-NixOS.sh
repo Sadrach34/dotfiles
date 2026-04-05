@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
+# Contributor: sadrach34 (mods and maintenance)
 # For NixOS starting of polkit-gnome. Dec 2023, the settings stated in NixOS wiki does not work so have to manual start it
 
 # Find all polkit-gnome executables in the Nix store

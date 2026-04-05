@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
+# Contributor: sadrach34 (mods and maintenance)
 #
-# Made and brought to by Kiran George
-# /* -- ✨ https://github.com/SherLock707 ✨ -- */  ##
 # Dropdown Terminal
 # Usage: ./Dropdown.sh [-d] <terminal_command>
 # Example: ./Dropdown.sh foot

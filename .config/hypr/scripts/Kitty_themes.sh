@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  #
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  #
+# Contributor: sadrach34 (mods and maintenance)
 # Kitty Themes Source https://github.com/dexpota/kitty-themes #
 
 # Define directories and variables

@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  #
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  #
+# Contributor: sadrach34 (mods and maintenance)
 # This file used on waybar modules sourcing defaults set in $HOME/.config/hypr/UserConfigs/01-UserDefaults.conf
 
 # Define the path to the config file

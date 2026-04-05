@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
+# Contributor: sadrach34 (mods and maintenance)
 # wlogout (Power, Screen Lock, Suspend, etc)
 
 # Set variables for parameters. First numbers corresponts to Monitor Resolution

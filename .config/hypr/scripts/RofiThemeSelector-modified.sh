@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
+# Contributor: sadrach34 (mods and maintenance)
 # A modified version of Rofi-Theme-Selector, concentrating only on ~/.local and also, applying only 10 @themes in ~/.config/rofi/config.rasi
 # as opposed to continous adding of //@theme
 

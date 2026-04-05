@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  #
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  #
+# Contributor: sadrach34 (mods and maintenance)
 # original code https://gist.github.com/Surendrajat/ff3876fd2166dd86fb71180f4e9342d7
 # weather using python
 

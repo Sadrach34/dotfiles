@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
+# Contributor: sadrach34 (mods and maintenance)
 # Scripts for volume controls for audio and mic 
 
 iDIR="$HOME/.config/swaync/icons"

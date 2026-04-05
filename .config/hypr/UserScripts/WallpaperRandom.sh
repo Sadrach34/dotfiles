@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */
+# Contributor: sadrach34 (mods and maintenance)
 # Script for Random Wallpaper (CTRL ALT W / SUPER ALT W)
 
 set -euo pipefail

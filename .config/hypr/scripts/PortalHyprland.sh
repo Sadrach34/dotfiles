@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
+# Contributor: sadrach34 (mods and maintenance)
 # Script CORREGIDO para Arch Linux
 
 # Detiene todos los portales existentes para empezar de cero
@@ -15,7 +16,7 @@ sleep 1
 
 # Inicia el portal principal desde la ruta CORRECTA para Arch
 /usr/lib/xdg-desktop-portal &#!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
 # For manually starting xdg-desktop-portal-hyprland
 
 sleep 1

@@ -1,5 +1,6 @@
 # #!/bin/bash
-# # /* ---- 💫 https://github.com/sadrach34 💫 ---- */
+# # /* ---- 💫 https://github.com/JaKooLit 💫 ---- */
+# Contributor: sadrach34 (mods and maintenance)
 # # SDDM Wallpaper and Wallust Colors Setter
 
 # # for the upcoming changes on the simple_sddm_theme

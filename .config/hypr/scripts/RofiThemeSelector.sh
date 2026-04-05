@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  #
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  #
+# Contributor: sadrach34 (mods and maintenance)
 # Rofi Themes - Script to preview and apply themes by live-reloading the config.
 
 # --- Configuration ---

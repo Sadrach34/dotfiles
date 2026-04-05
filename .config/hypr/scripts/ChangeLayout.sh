@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
+# Contributor: sadrach34 (mods and maintenance)
 # for changing Hyprland Layouts (Master or Dwindle) on the fly
 
 notif="$HOME/.config/swaync/images/ja.png"

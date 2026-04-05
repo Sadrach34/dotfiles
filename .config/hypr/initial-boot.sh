@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  #
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  #
+# Contributor: sadrach34 (mods and maintenance)
 # A bash script designed to run only once dotfiles installed
 
 # THIS SCRIPT CAN BE DELETED ONCE SUCCESSFULLY BOOTED!! And also, edit ~/.config/hypr/configs/Settings.conf

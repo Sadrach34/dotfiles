@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */
+# Contributor: sadrach34 (mods and maintenance)
 # /* Calculator (using qalculate) and rofi */
 # /* Submitted by: https://github.com/JosephArmas */
 

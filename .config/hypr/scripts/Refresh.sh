@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
+# Contributor: sadrach34 (mods and maintenance)
 # Scripts for refreshing ags, waybar, rofi, swaync, wallust
 
 SCRIPTSDIR=$HOME/.config/hypr/scripts
@@ -51,7 +52,7 @@ waybar > /dev/null 2>&1 &
 sleep 0.5
 swaync > /dev/null 2>&1 &
 # reload swaync
-swaync-client --reload-config
+timeout 2s swaync-client --reload-config > /dev/null 2>&1 || true
 
 # Relaunching rainbow borders if the script exists
 sleep 1

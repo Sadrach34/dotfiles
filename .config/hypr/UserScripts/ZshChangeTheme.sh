@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
+# Contributor: sadrach34 (mods and maintenance)
 # Script for Oh my ZSH theme ( CTRL SHIFT O)
 
 # preview of theme can be view here: https://github.com/ohmyzsh/ohmyzsh/wiki/Themes

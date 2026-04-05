@@ -1,5 +1,6 @@
 #!/bin/bash
-## /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+## /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
+# Contributor: sadrach34 (mods and maintenance)
 # For Dark and Light switching
 # Note: Scripts are looking for keywords Light or Dark except for wallpapers as the are in a separate directories
 

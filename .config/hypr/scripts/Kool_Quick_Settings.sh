@@ -1,5 +1,6 @@
 #!/bin/bash
-# /* ---- 💫 https://github.com/sadrach34 💫 ---- */  ##
+# /* ---- 💫 https://github.com/JaKooLit 💫 ---- */  ##
+# Contributor: sadrach34 (mods and maintenance)
 # Rofi menu for KooL Hyprland Quick Settings (SUPER SHIFT E)
 
 # Modify this config file for default terminal and EDITOR
