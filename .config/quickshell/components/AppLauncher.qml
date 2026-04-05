@@ -126,7 +126,31 @@ Scope {
   ListModel { id: appModel }
   ListModel { id: filteredModel }
 
-  function updateFilteredModel() {
+  function sameAppList(arr) {
+    if (!Array.isArray(arr) || appModel.count !== arr.length) return false
+    for (var i = 0; i < arr.length; i++) {
+      var oldItem = appModel.get(i)
+      var newItem = arr[i] || {}
+      if ((oldItem.name || "") !== (newItem.name || "")) return false
+      if ((oldItem.exec || "") !== (newItem.exec || "")) return false
+      if ((oldItem.categories || "") !== (newItem.categories || "")) return false
+      if ((oldItem.iconPath || "") !== (newItem.iconPath || "")) return false
+      if ((oldItem.displayName || "") !== (newItem.displayName || "")) return false
+      if ((oldItem.terminal || false) !== (newItem.terminal || false)) return false
+    }
+    return true
+  }
+
+  function updateFilteredModel(preserveSelection) {
+    var keepSelection = preserveSelection === true
+    var prevExec = ""
+    var prevName = ""
+    if (keepSelection && sliceListView.currentIndex >= 0 && sliceListView.currentIndex < filteredModel.count) {
+      var selected = filteredModel.get(sliceListView.currentIndex)
+      prevExec = selected.exec || ""
+      prevName = selected.name || ""
+    }
+
     var query = searchText.toLowerCase()
     var sf = sourceFilter
     var results = []
@@ -160,16 +184,27 @@ Scope {
     filteredModel.clear()
     for (var j = 0; j < results.length; j++) filteredModel.append(results[j])
     if (filteredModel.count > 0) {
-      sliceListView.currentIndex = 0
-      sliceListView.positionViewAtIndex(0, ListView.SnapPosition)
+      var targetIndex = 0
+      if (keepSelection && (prevExec !== "" || prevName !== "")) {
+        for (var k = 0; k < filteredModel.count; k++) {
+          var cand = filteredModel.get(k)
+          if ((prevExec !== "" && cand.exec === prevExec) ||
+              (prevExec === "" && prevName !== "" && cand.name === prevName)) {
+            targetIndex = k
+            break
+          }
+        }
+      }
+      sliceListView.currentIndex = targetIndex
+      sliceListView.positionViewAtIndex(targetIndex, ListView.SnapPosition)
     }
   }
 
   onSearchTextChanged: {
-    updateFilteredModel()
+    updateFilteredModel(false)
     if (searchInput.text !== searchText) searchInput.text = searchText
   }
-  onSourceFilterChanged: updateFilteredModel()
+  onSourceFilterChanged: updateFilteredModel(false)
 
   Process {
     id: loadApps
@@ -180,17 +215,19 @@ Scope {
       try {
         var arr = JSON.parse(loadApps.buf.trim())
         if (Array.isArray(arr) && arr.length >= 0) {
-          appModel.clear()
-          for (var i = 0; i < arr.length; i++) {
-            var a = arr[i]
-            appModel.append({
-              name: a.name||"", exec: a.exec||"", categories: a.categories||"",
-              iconPath: a.iconPath||"", terminal: a.terminal||false,
-              displayName: a.displayName||""
-            })
+          if (!sameAppList(arr)) {
+            appModel.clear()
+            for (var i = 0; i < arr.length; i++) {
+              var a = arr[i]
+              appModel.append({
+                name: a.name||"", exec: a.exec||"", categories: a.categories||"",
+                iconPath: a.iconPath||"", terminal: a.terminal||false,
+                displayName: a.displayName||""
+              })
+            }
           }
           appsLoadedOnce = true
-          appLauncher.updateFilteredModel()
+          appLauncher.updateFilteredModel(true)
         }
       } catch(e) {}
       loadApps.buf = ""
