@@ -140,6 +140,17 @@ Repo mantenido por [`sadrach34`](https://github.com/Sadrach34).
 Proyectos y personas que sirvieron de inspiración o referencia:
 
 - **[JaKooLit](https://github.com/JaKooLit)** — estructura y scripting de Hyprland
-- **[ambxst](https://github.com/ambxst)** — estética y layout de Quickshell
-- **[Skewed / liixini](https://github.com/liixini)** — diseño del panel
+- **[ambxst](https://github.com/Axenide)** — estética y layout de Quickshell
+- **[Skewed / liixini](https://github.com/liixini)** — diseño de appselector y applauncher
 - **[Modern-Clock-for-Quickshell — Xinoxi](https://github.com/Xinoxi)** — componente del reloj
+
+---
+
+## Licencia
+
+Este repositorio se distribuye bajo **GNU General Public License v3.0 (GPLv3)**.
+
+- El texto completo de la licencia está en `LICENSE`.
+- Los archivos derivados de otros proyectos conservan sus atribuciones en cabeceras/comentarios.
+- El detalle de licencias y avisos de terceros está en `THIRD_PARTY_LICENSES.md` y `NOTICE-DERIVATIVES.md`.
+- Las modificaciones locales se distribuyen bajo GPLv3 junto con el resto del repositorio.
