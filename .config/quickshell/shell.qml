@@ -23,6 +23,11 @@ ShellRoot {
         id: skwdColors
     }
 
+    ThemeColorService {
+        id: themeColors
+        colors: skwdColors
+    }
+
     // ── Flags de visibilidad globales ────────────────────────────────────────
     // Cada panel lee su flag para saber si debe mostrarse u ocultarse.
     // Los IpcHandlers de abajo los toggean desde keybinds de Hyprland.
@@ -60,6 +65,7 @@ ShellRoot {
 
     AppLauncher {
         colors: skwdColors
+        colorService: themeColors
     }         // Lanzador de apps: búsqueda, ranking por frecuencia,
                            //   filtro Steam, soporte de apps de terminal, watcher
                            //   inotifywait para refrescar al instalar/desinstalar apps

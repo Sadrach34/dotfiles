@@ -148,14 +148,30 @@ QtObject {
   onSourceFilterChanged: updateFilteredModel()
 
   // Launch an app, record selection for search ranking
+  property string _pendingLaunchCmd: ""
+
   property var _appRunner: Process { command: ["true"] }
+
+  property var _hyprRunner: Process {
+    command: ["true"]
+    onExited: exitCode => {
+      if (exitCode !== 0 && service._pendingLaunchCmd !== "") {
+        _appRunner.command = ["setsid", "-f", "sh", "-c", service._pendingLaunchCmd]
+        _appRunner.running = true
+      }
+      service._pendingLaunchCmd = ""
+    }
+  }
 
   function launchApp(appExec, isTerminal, appName) {
     if (appName) recordSelection(appName)
     var cmd = appExec
     if (isTerminal) cmd = service.terminal + " " + cmd
-    _appRunner.command = ["setsid", "-f", "sh", "-c", cmd]
-    _appRunner.running = true
+
+    // Hyprland dispatch keeps app startup behavior consistent with shell keybinds.
+    service._pendingLaunchCmd = cmd
+    _hyprRunner.command = ["hyprctl", "dispatch", "exec", cmd]
+    _hyprRunner.running = true
   }
 
   // Cache builder process

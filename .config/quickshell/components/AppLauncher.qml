@@ -14,6 +14,7 @@ Scope {
 
   // External bindings
   property var colors
+  property var colorService
   property bool showing: false
   property string homeDir: Quickshell.env("HOME")
   property string configDir: homeDir + "/.config/quickshell"
@@ -51,6 +52,11 @@ Scope {
       if (appLauncher.showing !== root.appLauncherVisible)
         appLauncher.showing = root.appLauncherVisible
     }
+  }
+
+  Component.onCompleted: {
+    // Warm cache on shell startup to avoid first-open loading delays.
+    service.start()
   }
 
   // Show/hide lifecycle
@@ -105,6 +111,24 @@ Scope {
     sliceListView.currentIndex = 0
     if (service.filteredModel.count > 0)
       sliceListView.positionViewAtIndex(0, ListView.Beginning)
+  }
+
+  function _nameHash(name) {
+    var s = (name || "app").toLowerCase()
+    var h = 0
+    for (var i = 0; i < s.length; i++) {
+      h = ((h << 5) - h) + s.charCodeAt(i)
+      h |= 0
+    }
+    return Math.abs(h)
+  }
+
+  function fallbackCardColor(name, tone) {
+    var hash = _nameHash(name)
+    var hue = hash % 360
+    var sat = 0.42 + ((hash % 20) / 100.0)
+    var val = tone === "light" ? 0.46 : 0.22
+    return Qt.hsva(hue / 360.0, Math.min(0.75, sat), val, 1.0)
   }
 
 
@@ -193,10 +217,12 @@ Scope {
           width: topFilterBar.width + 30
           height: topFilterBar.height + 14
           radius: height / 2
-          color: appLauncher.colors ? Qt.rgba(appLauncher.colors.surfaceContainer.r,
-                                               appLauncher.colors.surfaceContainer.g,
-                                               appLauncher.colors.surfaceContainer.b, 0.85)
-                                    : Qt.rgba(0.1, 0.12, 0.18, 0.85)
+          color: appLauncher.colorService
+            ? appLauncher.colorService.filterBarBg
+            : (appLauncher.colors ? Qt.rgba(appLauncher.colors.surfaceContainer.r,
+                                             appLauncher.colors.surfaceContainer.g,
+                                             appLauncher.colors.surfaceContainer.b, 0.85)
+                                  : Qt.rgba(0.1, 0.12, 0.18, 0.85))
           z: 10
         }
 
@@ -235,9 +261,14 @@ Scope {
                     : "transparent")
 
                 border.width: isSelected ? 0 : 1
-                border.color: isHovered ? (appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, 0.4) : Qt.rgba(1, 1, 1, 0.2)) : "transparent"
+                 border.color: isHovered
+                  ? (appLauncher.colorService
+                    ? Qt.rgba(appLauncher.colorService.filterBarActiveBg.r, appLauncher.colorService.filterBarActiveBg.g, appLauncher.colorService.filterBarActiveBg.b, 0.65)
+                    : (appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, 0.4) : Qt.rgba(1, 1, 1, 0.2)))
+                  : "transparent"
 
                 Behavior on color { ColorAnimation { duration: 100 } }
+                Behavior on border.color { ColorAnimation { duration: 100 } }
 
                 Text {
                   anchors.centerIn: parent
@@ -245,7 +276,9 @@ Scope {
                   font.pixelSize: 14
                   font.family: Style.fontFamilyIcons
                   color: parent.isSelected
-                    ? (appLauncher.colors ? appLauncher.colors.primaryText : "#000")
+                    ? (appLauncher.colorService
+                      ? appLauncher.colorService.filterBarActiveText
+                      : (appLauncher.colors ? appLauncher.colors.primaryText : "#000"))
                     : (appLauncher.colors ? appLauncher.colors.tertiary : "#8bceff")
                 }
 
@@ -263,12 +296,6 @@ Scope {
                   }
                 }
 
-                ToolTip {
-                  visible: sourceMouseArea.containsMouse
-                  text: modelData.label
-                  delay: 500
-                  contentWidth: implicitContentWidth
-                }
               }
             }
           }
@@ -616,8 +643,8 @@ Scope {
           Rectangle {
             anchors.fill: parent
             gradient: Gradient {
-              GradientStop { position: 0.0; color: appLauncher.colors ? Qt.rgba(appLauncher.colors.surfaceContainer.r, appLauncher.colors.surfaceContainer.g, appLauncher.colors.surfaceContainer.b, 1) : "#1a1c2e" }
-              GradientStop { position: 1.0; color: appLauncher.colors ? Qt.rgba(appLauncher.colors.surface.r, appLauncher.colors.surface.g, appLauncher.colors.surface.b, 1) : "#0e1018" }
+              GradientStop { position: 0.0; color: appLauncher.fallbackCardColor(model.name, "light") }
+              GradientStop { position: 1.0; color: appLauncher.fallbackCardColor(model.name, "dark") }
             }
             visible: !bgImage.visible && (!thumbImage.visible || thumbImage.status !== Image.Ready)
           }
@@ -647,6 +674,19 @@ Scope {
           }
 
 
+          Image {
+            id: appIcon
+            anchors.centerIn: parent
+            width: delegateItem.isCurrent ? 108 : 56
+            height: width
+            source: model.iconPath
+              ? (model.iconPath.startsWith("/") ? "file://" + model.iconPath : "image://icon/" + model.iconPath)
+              : (model.icon ? "image://icon/" + model.icon : "")
+            fillMode: Image.PreserveAspectFit
+            smooth: true
+            asynchronous: true
+            visible: !bgImage.visible && (!thumbImage.visible || thumbImage.status !== Image.Ready) && status === Image.Ready
+          }
           Rectangle {
             anchors.fill: parent
             color: Qt.rgba(0, 0, 0, delegateItem.isCurrent ? 0 : (delegateItem.isHovered ? 0.15 : 0.4))

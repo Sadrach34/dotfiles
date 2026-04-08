@@ -1,8 +1,13 @@
 {
   "_comment": "App customization for the launcher and window switcher. Each key is matched case-insensitively against the .desktop Name field.",
   "_usage": "Each value is an object with optional fields: background (image path), icon (nerd font glyph), displayName (custom name shown in UI), hidden (true to hide from launcher), tags (space-separated searchable tags).",
-  "about xfce": {},
-  "advanced network configuration": {},
+  "about xfce": {
+    "icon": "󰀄",
+    "background": "~/Documentos/Apps(NOBORRAR)/asdd.jpg"
+  },
+  "advanced network configuration": {
+    "background": "~/Documentos/Apps(NOBORRAR)/logo_network_manager.jpg"
+  },
   "android file transfer (mtp)": {},
   "audacity": {},
   "avahi ssh server browser": {},
