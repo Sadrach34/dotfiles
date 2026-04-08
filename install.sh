@@ -39,7 +39,7 @@ SDDM_STOW_PACKAGE="sddm"
 
 usage() {
   cat <<'HELP'
-Uso: ./install3.sh [opciones]
+Uso: ./install.sh [opciones]
 
 Opciones:
   --install          Forzar modo instalacion inicial
@@ -57,8 +57,8 @@ Opciones:
   -h, --help         Mostrar ayuda
 
 Ejemplos:
-  ./install3.sh --install --animations --gamer --programmer
-  ./install3.sh --install --no-animations --no-gamer --programmer
+  ./install.sh --install --animations --gamer --programmer
+  ./install.sh --install --no-animations --no-gamer --programmer
 HELP
 }
 
@@ -423,7 +423,7 @@ disable_animation_features_best_effort() {
 
   mkdir -p "$hypr_override_dir"
   cat > "$hypr_override_file" <<'EOF'
-# generado por install3.sh
+# generado por install.sh
 animations {
   enabled = false
 }
@@ -761,10 +761,10 @@ install_non_arch_minimal() {
   case "$pkgm" in
     apt)
       sudo apt update
-      sudo apt install -y git rsync curl wget unzip zip zsh kitty fzf ripgrep tmux neovim python3 python3-pip python3-venv
+      sudo apt install -y git rsync curl wget unzip zip zsh kitty fzf ripgrep tmux neovim python3 python3-pip python3-venv cava
       ;;
     dnf)
-      sudo dnf install -y git rsync curl wget unzip zip zsh kitty fzf ripgrep tmux neovim python3 python3-pip
+      sudo dnf install -y git rsync curl wget unzip zip zsh kitty fzf ripgrep tmux neovim python3 python3-pip cava
       ;;
     *)
       warn "No se detecto gestor soportado. Solo se aplicaran dotfiles."
@@ -772,6 +772,65 @@ install_non_arch_minimal() {
   esac
 
   warn "Modo gamer/programador/animaciones avanzadas requieren Arch + yay."
+}
+
+ensure_cava_installed_best_effort() {
+  section "Verificando cava"
+
+  if command -v cava >/dev/null 2>&1; then
+    ok "cava ya esta disponible"
+    return
+  fi
+
+  local pkgm
+  pkgm="$(detect_pkg_manager)"
+
+  case "$pkgm" in
+    pacman)
+      if pacman_install cava && command -v cava >/dev/null 2>&1; then
+        ok "cava instalado por pacman"
+        return
+      fi
+      ensure_yay
+      yay_install cava
+      ;;
+    apt)
+      sudo apt update && sudo apt install -y cava || warn "No se pudo instalar cava con apt"
+      ;;
+    dnf)
+      sudo dnf install -y cava || warn "No se pudo instalar cava con dnf"
+      ;;
+    *)
+      warn "No hay instalador automatico de cava para este gestor"
+      ;;
+  esac
+
+  if command -v cava >/dev/null 2>&1; then
+    ok "cava disponible"
+  else
+    warn "cava sigue sin estar disponible"
+  fi
+}
+
+install_custom_fonts_best_effort() {
+  section "Fuentes custom (Quickshell)"
+
+  local src_fonts="$REPO_DIR/fonts"
+  local dst_fonts="$HOME/.local/share/fonts"
+
+  if [[ ! -d "$src_fonts" ]]; then
+    warn "No existe carpeta de fuentes custom en $src_fonts"
+    return
+  fi
+
+  mkdir -p "$dst_fonts"
+  rsync -a "$src_fonts/" "$dst_fonts/"
+
+  if command -v fc-cache >/dev/null 2>&1; then
+    fc-cache -f "$dst_fonts" >/dev/null 2>&1 || warn "No se pudo refrescar cache de fuentes de usuario"
+  fi
+
+  ok "Fuentes custom aplicadas"
 }
 
 install_repo_update_notifier_pacman() {
@@ -942,9 +1001,11 @@ main() {
   fi
 
   apply_dotfiles
+  install_custom_fonts_best_effort
   configure_terminal_best_effort
   configure_waybar_laptop_best_effort
   configure_wallpaper_backend_best_effort
+  ensure_cava_installed_best_effort
   if [[ "$pkgm" == "pacman" ]]; then
     install_repo_update_notifier_pacman
   fi
@@ -958,8 +1019,8 @@ main() {
 
   echo
   ok "Instalacion completada"
-  info "Usa: ./install3.sh --update"
-  info "Sin prompts: ./install3.sh --yes --animations --gamer --programmer"
+  info "Usa: ./install.sh --update"
+  info "Sin prompts: ./install.sh --yes --animations --gamer --programmer"
 
   if [[ "$WITH_GAMER" == "yes" ]]; then
     warn "Gamer: revisa ProtonPlus/ProtonUp-Qt para confirmar Proton-GE latest"
