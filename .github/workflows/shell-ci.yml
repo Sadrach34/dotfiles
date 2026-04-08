@@ -1,0 +1,54 @@
+name: Shell CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  bash-checks:
+    name: Bash syntax + ShellCheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Bash syntax check
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(find . -type f -name '*.sh' -not -path './.git/*' -print0)
+
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo 'No .sh files found'
+            exit 0
+          fi
+
+          for f in "${files[@]}"; do
+            echo "Checking syntax: $f"
+            bash -n "$f"
+          done
+
+      - name: ShellCheck lint
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(find . -type f -name '*.sh' -not -path './.git/*' -print0)
+
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo 'No .sh files found'
+            exit 0
+          fi
+
+          shellcheck --severity=warning "${files[@]}"

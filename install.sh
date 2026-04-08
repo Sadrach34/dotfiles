@@ -563,6 +563,121 @@ install_non_arch_minimal() {
   warn "Modo gamer/programador/animaciones avanzadas requieren Arch + yay."
 }
 
+install_repo_update_notifier_pacman() {
+  section "Notificador de nuevas versiones del repo"
+
+  if ! command -v pacman >/dev/null 2>&1; then
+    warn "pacman no detectado, se omite notificador"
+    return
+  fi
+
+  local checker_tmp hook_tmp
+  checker_tmp="$(mktemp)"
+  hook_tmp="$(mktemp)"
+
+  cat > "$checker_tmp" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v git >/dev/null 2>&1; then
+  exit 0
+fi
+
+if ! command -v notify-send >/dev/null 2>&1; then
+  exit 0
+fi
+
+timeout_cmd=""
+if command -v timeout >/dev/null 2>&1; then
+  timeout_cmd="timeout 8"
+fi
+
+for marker in /home/*/.local/share/sadrach-dotfiles-installed-v3; do
+  [[ -f "$marker" ]] || continue
+
+  home_dir="${marker%/.local/share/sadrach-dotfiles-installed-v3}"
+  user_name="$(basename "$home_dir")"
+
+  repo_dir="$(awk -F= '/^repo=/{print $2; exit}' "$marker")"
+  [[ -n "$repo_dir" && -d "$repo_dir/.git" ]] || continue
+
+  local_sha="$(git -C "$repo_dir" rev-parse HEAD 2>/dev/null || true)"
+  [[ -n "$local_sha" ]] || continue
+
+  local_branch="$(git -C "$repo_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  remote_sha=""
+
+  if [[ -n "$local_branch" && "$local_branch" != "HEAD" ]]; then
+    if [[ -n "$timeout_cmd" ]]; then
+      remote_sha="$(timeout 8 git -C "$repo_dir" ls-remote --heads origin "refs/heads/$local_branch" 2>/dev/null | awk 'NR==1{print $1}')"
+    else
+      remote_sha="$(git -C "$repo_dir" ls-remote --heads origin "refs/heads/$local_branch" 2>/dev/null | awk 'NR==1{print $1}')"
+    fi
+  fi
+
+  if [[ -z "$remote_sha" ]]; then
+    if [[ -n "$timeout_cmd" ]]; then
+      remote_sha="$(timeout 8 git -C "$repo_dir" ls-remote origin HEAD 2>/dev/null | awk 'NR==1{print $1}')"
+    else
+      remote_sha="$(git -C "$repo_dir" ls-remote origin HEAD 2>/dev/null | awk 'NR==1{print $1}')"
+    fi
+  fi
+
+  [[ -n "$remote_sha" ]] || continue
+  [[ "$local_sha" != "$remote_sha" ]] || continue
+
+  cache_dir="$home_dir/.cache/sadrach-dotfiles"
+  cache_file="$cache_dir/last_notified_remote_sha"
+
+  mkdir -p "$cache_dir"
+  chown "$user_name":"$user_name" "$cache_dir" 2>/dev/null || true
+
+  last_notified=""
+  if [[ -f "$cache_file" ]]; then
+    last_notified="$(cat "$cache_file" 2>/dev/null || true)"
+  fi
+
+  if [[ "$last_notified" == "$remote_sha" ]]; then
+    continue
+  fi
+
+  uid="$(id -u "$user_name" 2>/dev/null || true)"
+  [[ -n "$uid" ]] || continue
+
+  bus_path="/run/user/$uid/bus"
+  if [[ ! -S "$bus_path" ]]; then
+    continue
+  fi
+
+  msg="Hay una nueva version de tus dotfiles en GitHub. Ejecuta: cd $repo_dir && git pull --ff-only"
+
+  runuser -u "$user_name" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=$bus_path" \
+    notify-send -a "pacman" -u normal "Dotfiles: update disponible" "$msg" || true
+
+  printf '%s\n' "$remote_sha" > "$cache_file"
+  chown "$user_name":"$user_name" "$cache_file" 2>/dev/null || true
+done
+EOF
+
+  cat > "$hook_tmp" <<'EOF'
+[Trigger]
+Operation = Upgrade
+Type = Package
+Target = *
+
+[Action]
+Description = Revisando nuevas versiones de dotfiles en GitHub...
+When = PostTransaction
+Exec = /usr/local/bin/sadrach-dotfiles-version-check
+EOF
+
+  sudo install -Dm755 "$checker_tmp" /usr/local/bin/sadrach-dotfiles-version-check
+  sudo install -Dm644 "$hook_tmp" /etc/pacman.d/hooks/99-sadrach-dotfiles-version-check.hook
+
+  rm -f "$checker_tmp" "$hook_tmp"
+  ok "Notificador instalado: pacman hook + checker"
+}
+
 main() {
   section "Dotfiles Installer v3"
   info "Repositorio: $REPO_DIR"
@@ -613,6 +728,9 @@ main() {
   fi
 
   apply_dotfiles
+  if [[ "$pkgm" == "pacman" ]]; then
+    install_repo_update_notifier_pacman
+  fi
   disable_animation_features_best_effort
   enable_services_best_effort
   set_default_shell
