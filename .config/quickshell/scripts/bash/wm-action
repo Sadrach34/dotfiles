@@ -1,0 +1,123 @@
+#!/bin/bash
+# Compositor-agnostic WM action dispatcher (niri, hyprland, sway, kwin)
+
+. "$(dirname "$0")/lib.sh"
+
+action="$1"; shift
+
+case "$SKWD_COMPOSITOR" in
+
+  # Niri compositor actions
+  niri)
+    case "$action" in
+      focus-window)     niri msg action focus-window --id "$1" ;;
+      close-window)     niri msg action close-window --id "$1" ;;
+      focus-monitor)    niri msg action focus-monitor "$1" ;;
+      focus-workspace)  niri msg action focus-workspace "$1" ;;
+      list-windows)     niri msg --json windows ;;
+      list-workspaces)  niri msg --json workspaces ;;
+      list-outputs)     niri msg --json outputs ;;
+      event-stream)     exec niri msg --json event-stream ;;
+      screenshot-window) niri msg action screenshot-window --id "$1" --path "$2" ;;
+      screenshot-output) grim -o "$1" "$2" ;;
+      quit)             niri msg action quit ;;
+      *)                echo "wm-action: unknown action: $action" >&2; exit 1 ;;
+    esac
+    ;;
+
+  # Hyprland compositor actions
+  hyprland)
+    case "$action" in
+      focus-window)     hyprctl dispatch focuswindow "address:$1" ;;
+      close-window)     hyprctl dispatch closewindow "address:$1" ;;
+      focus-monitor)    hyprctl dispatch focusmonitor "$1" ;;
+      focus-workspace)  hyprctl dispatch workspace "$1" ;;
+      list-windows)     hyprctl -j clients ;;
+      list-workspaces)  hyprctl -j workspaces ;;
+      list-outputs)     hyprctl -j monitors | jq '[.[] | {key: .name, value: .}] | from_entries' ;;
+      event-stream)     exec socat -U - "UNIX-CONNECT:$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock" ;;
+      screenshot-window) grim -g "$(hyprctl -j clients | jq -r --arg addr "$1" '.[] | select(.address == $addr) | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"')" "$2" ;;
+      screenshot-output) grim -o "$1" "$2" ;;
+      quit)             hyprctl dispatch exit ;;
+      *)                echo "wm-action: unknown action: $action" >&2; exit 1 ;;
+    esac
+    ;;
+
+  # Sway compositor actions
+  sway)
+    case "$action" in
+      focus-window)     swaymsg "[con_id=$1] focus" ;;
+      close-window)     swaymsg "[con_id=$1] kill" ;;
+      focus-monitor)    swaymsg "focus output $1" ;;
+      focus-workspace)  swaymsg "workspace $1" ;;
+      list-windows)     swaymsg -t get_tree | jq '[.. | objects | select(.pid? > 0 and .type? == "con")]' ;;
+      list-workspaces)  swaymsg -t get_workspaces ;;
+      list-outputs)     swaymsg -t get_outputs | jq '[.[] | {key: .name, value: .}] | from_entries' ;;
+      event-stream)     exec swaymsg -t subscribe -m '["workspace","window"]' ;;
+      screenshot-window) swaymsg "[con_id=$1] focus" && grim -g "$(swaymsg -t get_tree | jq -r '.. | objects | select(.focused?) | .rect | "\(.x),\(.y) \(.width)x\(.height)"')" "$2" ;;
+      screenshot-output) grim -o "$1" "$2" ;;
+      quit)             swaymsg exit ;;
+      *)                echo "wm-action: unknown action: $action" >&2; exit 1 ;;
+    esac
+    ;;
+
+  # KDE KWin compositor actions (requires: kdotool, qdbus6)
+  kwin)
+    case "$action" in
+      focus-window)     kdotool windowactivate "$1" ;;
+      close-window)     kdotool windowclose "$1" ;;
+      focus-workspace)  kdotool set_desktop "$1" ;;
+      focus-monitor)    echo "wm-action: focus-monitor not supported on kwin" >&2 ;;
+      list-windows)
+        active=$(kdotool getactivewindow 2>/dev/null)
+        result="["
+        first=true
+        while IFS= read -r uuid; do
+          [ -z "$uuid" ] && continue
+          info=$(qdbus6 org.kde.KWin /KWin org.kde.KWin.getWindowInfo "$uuid" 2>/dev/null)
+          [ -z "$info" ] && continue
+          # Only normal windows (type 0), skip switcher-hidden windows
+          type=$(echo "$info" | sed -n 's/^type: //p')
+          [ "$type" != "0" ] && continue
+          skip=$(echo "$info" | sed -n 's/^skipSwitcher: //p')
+          [ "$skip" = "true" ] && continue
+          caption=$(echo "$info" | sed -n 's/^caption: //p')
+          resourceClass=$(echo "$info" | sed -n 's/^resourceClass: //p')
+          desktopFile=$(echo "$info" | sed -n 's/^desktopFile: //p')
+          desktop=$(kdotool get_desktop_for_window "$uuid" 2>/dev/null)
+          is_focused=false
+          [ "$uuid" = "$active" ] && is_focused=true
+          $first || result+=","
+          first=false
+          result+=$(jq -n \
+            --arg id "$uuid" \
+            --arg title "$caption" \
+            --arg app_id "${desktopFile:-$resourceClass}" \
+            --argjson ws "${desktop:-0}" \
+            --argjson focused "$is_focused" \
+            '{id:$id,title:$title,app_id:$app_id,workspace_id:$ws,is_focused:$focused,is_floating:false}')
+        done < <(kdotool search --title "" 2>/dev/null)
+        result+="]"
+        echo "$result"
+        ;;
+      list-workspaces)
+        num=$(kdotool get_num_desktops 2>/dev/null)
+        cur=$(kdotool get_desktop 2>/dev/null)
+        jq -n --argjson n "${num:-1}" --argjson c "${cur:-1}" \
+          '[range(1;$n+1) | {id:., name:("Desktop "+tostring), is_active:(.==$c)}]'
+        ;;
+      list-outputs)     echo "{}" ;;
+      event-stream)     echo "wm-action: event-stream not supported on kwin" >&2; exit 1 ;;
+      screenshot-window) spectacle -w -b -n -o "$2" 2>/dev/null ;;
+      screenshot-output) spectacle -f -b -n -o "$2" 2>/dev/null ;;
+      quit)             qdbus6 org.kde.Shutdown /Shutdown org.kde.Shutdown.logout 0 0 0 2>/dev/null ;;
+      *)                echo "wm-action: unknown action: $action" >&2; exit 1 ;;
+    esac
+    ;;
+
+  *)
+    echo "wm-action: unsupported compositor '$SKWD_COMPOSITOR'" >&2
+    echo "  Set 'compositor' in config.json to: niri, hyprland, sway, or kwin" >&2
+    exit 1
+    ;;
+esac

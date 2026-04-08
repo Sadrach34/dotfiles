@@ -4,6 +4,7 @@ import Quickshell.Wayland
 import QtQuick
 import Qt5Compat.GraphicalEffects
 import "./components"
+import "./components/skwd-wall/qml" as SkwdTheme
 import "./screenshot"
 
 // Raíz del shell — punto de entrada de toda la configuración de Quickshell.
@@ -18,6 +19,10 @@ ShellRoot {
     // Ruta base de la configuración (usada por subcomponentes para leer archivos)
     property string configPath: Quickshell.env("HOME") + "/.config/quickshell"
 
+    SkwdTheme.Colors {
+        id: skwdColors
+    }
+
     // ── Flags de visibilidad globales ────────────────────────────────────────
     // Cada panel lee su flag para saber si debe mostrarse u ocultarse.
     // Los IpcHandlers de abajo los toggean desde keybinds de Hyprland.
@@ -26,6 +31,7 @@ ShellRoot {
     property bool appLauncherVisible:     false  // lanzador de apps con búsqueda y freq
     property bool windowSwitcherVisible:  false  // ALT+TAB estilo paralelo
     property bool wallpaperPickerVisible: false  // selector visual de fondos de pantalla
+    property bool configPanelVisible:     false  // panel de configuración (apps/iconos/background)
 
     // ── Helpers de toggle ────────────────────────────────────────────────────
     // Llamados desde los IpcHandlers; invierten el flag correspondiente.
@@ -34,6 +40,9 @@ ShellRoot {
     function toggleAppLauncher()     { appLauncherVisible    = !appLauncherVisible }
     function toggleWindowSwitcher()  { windowSwitcherVisible = !windowSwitcherVisible }
     function toggleWallpaperPicker() { wallpaperPickerVisible = !wallpaperPickerVisible }
+    function toggleConfigPanel()     { configPanelVisible = !configPanelVisible }
+    function openWallpaperPicker()   { wallpaperPickerVisible = true }
+    function closeWallpaperPicker()  { wallpaperPickerVisible = false }
 
     // ── Componentes (cada uno es una PanelWindow o similar en Wayland) ───────
 
@@ -49,15 +58,23 @@ ShellRoot {
     ClickOverlay {}        // Capa transparente que captura clics fuera de cualquier
                            //   panel abierto para cerrarlo (dismiss on outside click)
 
-    AppLauncher {}         // Lanzador de apps: búsqueda, ranking por frecuencia,
+    AppLauncher {
+        colors: skwdColors
+    }         // Lanzador de apps: búsqueda, ranking por frecuencia,
                            //   filtro Steam, soporte de apps de terminal, watcher
                            //   inotifywait para refrescar al instalar/desinstalar apps
 
-    WindowSwitcher {}      // Switcher de ventanas: vista en parallelogram-slices,
+    WindowSwitcher {
+        colors: skwdColors
+    }      // Switcher de ventanas: vista en parallelogram-slices,
                            //   badge FLOAT, cerrar ventana con Del, multi-monitor
 
     WallpaperPicker {}     // Selector de fondos: thumbnails 900×520, navegación
                            //   con teclado/scroll, aplica con swww
+
+    ConfigPanel {
+        colors: skwdColors
+    }
 
     ModernClock {}
 
@@ -85,6 +102,12 @@ ShellRoot {
     IpcHandler {
         target: "wallpaperpicker"
         function toggle() { root.toggleWallpaperPicker() }
+        function open() { root.openWallpaperPicker() }
+        function close() { root.closeWallpaperPicker() }
+    }
+    IpcHandler {
+        target: "config"
+        function toggle() { root.toggleConfigPanel() }
     }
 
     // ── Screenshot tool (Win+S) ───────────────────────────────────────────────

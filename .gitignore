@@ -1,8 +1,8 @@
-.config/hypr/UserScripts/whatsapp-launcher-rs/target/
 .config/hypr/UserConfigs/*.bak-*
 .config/hypr/UserScripts/*.bak-*
 .config/hypr/wallpaper_effects/
 .config/quickshell/feature/
+.config/skwd-wall/.env
 .config/hypr/UserScripts/asd.txt
-.config/quickshell/ambxstgit/
+.config/quickshell/bak/
 .config/quickshell/components/ModernClockWidget20*/

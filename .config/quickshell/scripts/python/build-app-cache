@@ -1,0 +1,452 @@
+#!/usr/bin/env python3
+"""Build app launcher cache: scan .desktop files and Steam games, output JSONL."""
+# Imports
+import os
+import sys
+import re
+import json
+import shutil
+import subprocess
+from pathlib import Path
+import skwdconfig
+
+# Cache and thumbnail paths
+_cache = skwdconfig.cache_dir() / "app-launcher"
+CACHE_FILE = _cache / "list.jsonl"
+THUMB_DIR = _cache / "thumbs"
+
+STEAM_DIR = skwdconfig.steam_dir()
+STEAM_CACHE = STEAM_DIR / "appcache" / "librarycache"
+THUMB_SIZE = 256
+BG_CONFIG = skwdconfig.config_dir() / "data" / "apps.json"
+
+# Desktop file search directories
+DESKTOP_DIRS = [
+    Path("/usr/share/applications"),
+    Path.home() / ".local/share/applications",
+    Path("/var/lib/flatpak/exports/share/applications"),
+    Path.home() / ".local/share/flatpak/exports/share/applications",
+]
+
+# Icon search directories and size priority
+ICON_DIRS = [
+    Path.home() / ".local/share/icons",
+    Path("/usr/share/icons/hicolor"),
+    Path("/usr/share/icons/Adwaita"),
+    Path("/usr/share/icons/breeze"),
+    Path("/usr/share/icons/breeze-dark"),
+    Path("/usr/share/pixmaps"),
+    Path("/usr/share/icons"),
+]
+
+ICON_SIZES = ["512x512", "256x256", "128x128", "96x96", "64x64", "48x48", "scalable"]
+
+
+# Resolve icon name to absolute path across icon dirs
+def find_icon(icon_name: str) -> str | None:
+    """Resolve an icon name to an absolute path."""
+    if not icon_name:
+        return None
+
+    if icon_name.startswith("/") and os.path.isfile(icon_name):
+        return icon_name
+
+    for icon_dir in ICON_DIRS:
+        if not icon_dir.exists():
+            continue
+        for size in ICON_SIZES:
+            for category in ["apps", "applications"]:
+                for ext in [".png", ".svg", ".xpm"]:
+                    candidate = icon_dir / size / category / (icon_name + ext)
+                    if candidate.is_file():
+                        return str(candidate)
+        for ext in [".png", ".svg", ".xpm", ""]:
+            candidate = icon_dir / (icon_name + ext)
+            if candidate.is_file():
+                return str(candidate)
+
+    return None
+
+
+# Create square thumbnail from icon via ImageMagick
+def make_thumbnail(icon_path: str, out_path: Path, size: int = THUMB_SIZE) -> bool:
+    """Create a square thumbnail from an icon file."""
+    if out_path.exists():
+        return True
+    try:
+        result = subprocess.run(
+            ["magick", icon_path, "-resize", f"{size}x{size}", "-background", "none",
+             "-gravity", "center", "-extent", f"{size}x{size}", str(out_path)],
+            capture_output=True, timeout=10
+        )
+        return result.returncode == 0
+    except Exception:
+        try:
+            shutil.copy2(icon_path, out_path)
+            return True
+        except Exception:
+            return False
+
+
+# Find Steam library hero image and resize for thumbnail
+def make_steam_thumbnail(appid: str, out_path: Path) -> bool:
+    """Find the best Steam image for a game and create a thumbnail."""
+    if out_path.exists():
+        return True
+
+    app_cache = STEAM_CACHE / appid
+    if not app_cache.is_dir():
+        return False
+
+    preferred = ["library_hero.jpg", "library_header.jpg", "library_capsule.jpg", "logo.png"]
+
+    for subdir in app_cache.iterdir():
+        if subdir.is_dir():
+            for name in preferred:
+                candidate = subdir / name
+                if candidate.is_file():
+                    try:
+                        subprocess.run(
+                            ["magick", str(candidate), "-resize", "460x215^",
+                             "-gravity", "center", "-extent", "460x215", str(out_path)],
+                            capture_output=True, timeout=10
+                        )
+                        if out_path.exists():
+                            return True
+                    except Exception:
+                        pass
+
+    for f in app_cache.rglob("*.jpg"):
+        if f.stat().st_size > 1000:
+            try:
+                shutil.copy2(f, out_path)
+                return True
+            except Exception:
+                pass
+
+    return False
+
+
+# Load app customization config (backgrounds, icons, display names)
+def load_app_backgrounds() -> dict:
+    """Load the app customization config (object values with background/icon/displayName)."""
+    try:
+        data = json.loads(BG_CONFIG.read_text())
+        result = {}
+        for k, v in data.items():
+            if k.startswith("_"):
+                continue
+            if isinstance(v, str):
+                result[k.lower()] = {"background": v} if v else {}
+            elif isinstance(v, dict):
+                result[k.lower()] = v
+        return result
+    except Exception:
+        return {}
+
+
+# Case-insensitive app config lookup
+def find_app_config(name: str, config_map: dict) -> dict:
+    """Find config for an app by name (case-insensitive exact match first, then includes)."""
+    lower_name = name.lower()
+    if lower_name in config_map:
+        return config_map[lower_name]
+    for key, conf in config_map.items():
+        if key in lower_name:
+            return conf
+    return {}
+
+
+# Sync apps.json with discovered desktop + steam apps
+def sync_app_backgrounds(desktop_apps: list[dict], steam_games: list[dict]):
+    """Sync the apps.json config with discovered apps.
+
+    Adds new apps with empty objects, preserves existing entries.
+    """
+    existing = {}
+    comments = {}
+    try:
+        raw = json.loads(BG_CONFIG.read_text())
+        for k, v in raw.items():
+            if k.startswith("_"):
+                comments[k] = v
+            elif isinstance(v, str):
+                existing[k.lower()] = {"background": v} if v else {}
+            elif isinstance(v, dict):
+                existing[k.lower()] = v
+            else:
+                existing[k.lower()] = {}
+    except Exception:
+        pass
+
+    for app in desktop_apps:
+        name = app["name"].lower()
+        if name not in existing:
+            existing[name] = {}
+
+    for game in steam_games:
+        name = game["name"].lower()
+        if name not in existing:
+            existing[name] = {}
+
+    output = {}
+    output["_comment"] = comments.get("_comment", "App customization for the launcher and window switcher. Each key is matched case-insensitively.")
+    output["_usage"] = comments.get("_usage", "Each value is an object with optional fields: background (image path), icon (nerd font glyph), displayName (custom name shown in UI), hidden (true to hide from launcher/switcher), tags (space-separated searchable tags).")
+    if "_example" in comments:
+        output["_example"] = comments["_example"]
+
+    for key in sorted(existing.keys()):
+        output[key] = existing[key]
+
+    try:
+        BG_CONFIG.parent.mkdir(parents=True, exist_ok=True)
+        BG_CONFIG.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n")
+    except Exception as e:
+        print(f"Warning: could not write {BG_CONFIG}: {e}", file=sys.stderr)
+
+
+# Resolve background image path for an app
+def find_background(name: str, bg_map: dict) -> str:
+    """Find a background image for an app by name."""
+    conf = find_app_config(name, bg_map)
+    bg = conf.get("background", "")
+    if bg:
+        expanded = str(Path(bg).expanduser())
+        if Path(expanded).is_file():
+            return expanded
+    return ""
+
+
+# Scan all desktop dirs, deduplicate, return sorted app list
+def parse_desktop_files() -> list[dict]:
+    """Parse all .desktop files and return app entries."""
+    apps = {}
+
+    for desktop_dir in DESKTOP_DIRS:
+        if not desktop_dir.is_dir():
+            continue
+        for desktop_file in desktop_dir.glob("*.desktop"):
+            try:
+                entry = parse_desktop_file(desktop_file)
+                if entry and entry["name"] not in apps:
+                    apps[entry["name"]] = entry
+            except Exception:
+                continue
+
+    return sorted(apps.values(), key=lambda a: a["name"].lower())
+
+
+# Parse single .desktop file, filter by type/hidden
+def parse_desktop_file(path: Path) -> dict | None:
+    """Parse a single .desktop file."""
+    data = {}
+    in_desktop_entry = False
+
+    try:
+        text = path.read_text(errors="replace")
+    except Exception:
+        return None
+
+    for line in text.splitlines():
+        line = line.strip()
+        if line == "[Desktop Entry]":
+            in_desktop_entry = True
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            in_desktop_entry = False
+            continue
+        if not in_desktop_entry or "=" not in line:
+            continue
+
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+
+        if key in ("Name", "Exec", "Icon", "Categories", "GenericName",
+                    "NoDisplay", "Hidden", "Terminal", "Type"):
+            if "[" not in key:
+                data[key] = value
+
+    if data.get("Type", "Application") != "Application":
+        return None
+    if data.get("NoDisplay", "").lower() == "true":
+        return None
+    if data.get("Hidden", "").lower() == "true":
+        return None
+
+    name = data.get("Name", "")
+    exec_cmd = data.get("Exec", "")
+    if not name or not exec_cmd:
+        return None
+
+    exec_cmd = re.sub(r'\s+%[fFuUdDnNickvm]', '', exec_cmd)
+
+    icon = data.get("Icon", "")
+    categories = data.get("Categories", "")
+
+    return {
+        "name": name,
+        "exec": exec_cmd,
+        "icon": icon,
+        "categories": categories,
+        "source": "desktop",
+        "terminal": data.get("Terminal", "").lower() == "true",
+    }
+
+
+# Parse Steam appmanifest files from library folders
+def parse_steam_games() -> list[dict]:
+    """Parse installed Steam games from appmanifest files."""
+    games = []
+    library_paths = set()
+
+    vdf_file = STEAM_DIR / "steamapps" / "libraryfolders.vdf"
+    if vdf_file.exists():
+        try:
+            text = vdf_file.read_text()
+            for match in re.finditer(r'"path"\s+"([^"]+)"', text):
+                lib_path = Path(match.group(1)) / "steamapps"
+                if lib_path.is_dir():
+                    library_paths.add(lib_path)
+        except Exception:
+            pass
+
+    default = STEAM_DIR / "steamapps"
+    if default.is_dir():
+        library_paths.add(default)
+
+    seen_ids = set()
+    for lib_path in library_paths:
+        for manifest in lib_path.glob("appmanifest_*.acf"):
+            try:
+                text = manifest.read_text(errors="replace")
+                appid_match = re.search(r'"appid"\s+"(\d+)"', text)
+                name_match = re.search(r'"name"\s+"([^"]+)"', text)
+
+                if not appid_match or not name_match:
+                    continue
+
+                appid = appid_match.group(1)
+                name = name_match.group(1)
+
+                if any(skip in name.lower() for skip in [
+                    "proton", "redistribut", "steamworks", "steam linux runtime",
+                    "wallpaper engine", "steamvr"
+                ]):
+                    continue
+
+                if appid in seen_ids:
+                    continue
+                seen_ids.add(appid)
+
+                games.append({
+                    "name": name,
+                    "exec": f"steam steam://rungameid/{appid}",
+                    "icon": "",
+                    "categories": "Game;",
+                    "source": "steam",
+                    "steamAppId": appid,
+                    "terminal": False,
+                })
+            except Exception:
+                continue
+
+    return sorted(games, key=lambda g: g["name"].lower())
+
+
+# Main: parse apps, generate thumbnails, write JSONL cache
+def main():
+
+    _cache.mkdir(parents=True, exist_ok=True)
+    THUMB_DIR.mkdir(parents=True, exist_ok=True)
+
+    desktop_apps = parse_desktop_files()
+    steam_games = parse_steam_games()
+
+    sync_app_backgrounds(desktop_apps, steam_games)
+
+    bg_map = load_app_backgrounds()
+
+    all_apps = []
+
+    steam_names = {g["name"].lower() for g in steam_games}
+
+    print(f"Desktop apps: {len(desktop_apps)}", file=sys.stderr)
+    print(f"Steam games: {len(steam_games)}", file=sys.stderr)
+
+    total = len(desktop_apps) + len(steam_games)
+    processed = 0
+
+    for app in desktop_apps:
+        processed += 1
+        if app["name"].lower() in steam_names:
+            continue
+        slug = re.sub(r'[^a-zA-Z0-9_-]', '_', app["name"])
+        thumb_path = THUMB_DIR / f"{slug}.png"
+
+        icon_path = find_icon(app["icon"])
+        if icon_path:
+            make_thumbnail(icon_path, thumb_path)
+
+        app_conf = find_app_config(app["name"], bg_map)
+        entry = {
+            "name": app["name"],
+            "exec": app["exec"],
+            "icon": app.get("icon", ""),
+            "thumb": str(thumb_path) if thumb_path.exists() else "",
+            "iconPath": icon_path or "",
+            "categories": app["categories"],
+            "source": "desktop",
+            "terminal": app.get("terminal", False),
+            "background": find_background(app["name"], bg_map),
+            "customIcon": app_conf.get("icon", ""),
+            "displayName": app_conf.get("displayName", ""),
+            "hidden": bool(app_conf.get("hidden", False)),
+            "tags": app_conf.get("tags", ""),
+        }
+        all_apps.append(entry)
+
+        if processed % 20 == 0:
+            print(f"progress:{processed}:{total}", flush=True)
+
+    for game in steam_games:
+        processed += 1
+        appid = game["steamAppId"]
+        slug = f"steam_{appid}"
+        thumb_path = THUMB_DIR / f"{slug}.jpg"
+
+        make_steam_thumbnail(appid, thumb_path)
+
+        game_conf = find_app_config(game["name"], bg_map)
+        entry = {
+            "name": game["name"],
+            "exec": game["exec"],
+            "icon": "",
+            "thumb": str(thumb_path) if thumb_path.exists() else "",
+            "iconPath": "",
+            "categories": "Game;",
+            "source": "steam",
+            "steamAppId": appid,
+            "terminal": False,
+            "background": find_background(game["name"], bg_map),
+            "customIcon": game_conf.get("icon", ""),
+            "displayName": game_conf.get("displayName", ""),
+            "hidden": bool(game_conf.get("hidden", False)),
+            "tags": game_conf.get("tags", ""),
+        }
+        all_apps.append(entry)
+
+        if processed % 20 == 0:
+            print(f"progress:{processed}:{total}", flush=True)
+
+    with open(CACHE_FILE, "w") as f:
+        for app in all_apps:
+            f.write(json.dumps(app) + "\n")
+
+    print(f"progress:{total}:{total}", flush=True)
+    print("done", flush=True)
+    print(f"Wrote {len(all_apps)} entries to {CACHE_FILE}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

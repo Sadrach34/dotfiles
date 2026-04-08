@@ -1,0 +1,100 @@
+{
+  "_comment": "Main configuration for skwd. Copy this file to config.json and edit to match your setup.",
+  "compositor": "hyprland",
+  "paths": {
+    "scripts": "",
+    "cache": "~/.cache/quickshell",
+    "wallpaper": "~/wallpaper",
+    "steamWorkshop": "~/.local/share/Steam/steamapps/workshop/content/431960",
+    "steamWeAssets": "~/.local/share/Steam/steamapps/common/wallpaper_engine/assets",
+    "steam": "~/.local/share/Steam"
+  },
+  "monitor": "DP-1",
+  "ollama": {
+    "url": "http://localhost:11434",
+    "model": "gemma3:4b"
+  },
+  "matugen": {
+    "schemeType": "scheme-fidelity",
+    "kdeColorScheme": "SkwdMatugen"
+  },
+  "integrations": {
+    "kitty": "~/.config/kitty/skwd-theme.conf",
+    "kde": "~/.local/share/color-schemes/SkwdMatugen.colors",
+    "vscode": "~/.vscode/extensions/matugen.matugen-theme-1.0.0/themes/matugen-color-theme.json",
+    "vesktop": "~/.config/vesktop/themes/kitty-match.css",
+    "zen": "",
+    "spicetify": "~/.config/spicetify/Themes/Matugen/color.ini",
+    "spicetifyCss": "~/.config/spicetify/Themes/Matugen/user.css",
+    "yazi": "~/.config/yazi/theme.toml",
+    "qt6ct": "~/.config/qt6ct/colors/matugen.conf"
+  },
+  "intervals": {
+    "weatherPollMs": 600000,
+    "wifiPollMs": 10000,
+    "smartHomePollMs": 5000,
+    "ollamaStatusPollMs": 5000,
+    "notificationExpireMs": 8000,
+    "systemStatsFastSec": 3,
+    "systemStatsSlowSec": 30
+  },
+  "terminal": "kitty",
+  "wallpaperMute": true,
+  "components": {
+    "bar": {
+      "enabled": true,
+      "weather": {
+        "enabled": true,
+        "city": "YOUR_CITY"
+      },
+      "wifi": {
+        "enabled": true,
+        "interface": "wlan0"
+      },
+      "bluetooth": true,
+      "volume": true,
+      "calendar": true,
+      "music": {
+        "enabled": true,
+        "preferredPlayer": "spotify",
+        "visualizer": "wave",
+        "visualizerTop": true,
+        "visualizerBottom": true
+      }
+    },
+    "lockscreen": false,
+    "appLauncher": true,
+    "wallpaperSelector": {
+      "enabled": true,
+      "showColorDots": false
+    },
+    "windowSwitcher": true,
+    "powerMenu": {
+      "enabled": true,
+      "items": [
+        {
+          "action": "lock",
+          "icon": "",
+          "label": ""
+        },
+        {
+          "action": "logout",
+          "icon": "",
+          "label": ""
+        },
+        {
+          "action": "reboot",
+          "icon": "",
+          "label": ""
+        },
+        {
+          "action": "poweroff",
+          "icon": "",
+          "label": ""
+        }
+      ]
+    },
+    "smartHome": false,
+    "notifications": true
+  }
+}

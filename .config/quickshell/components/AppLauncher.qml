@@ -6,668 +6,927 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import QtQuick.Controls
 import QtQuick.Shapes
+import "./skwd-wall/qml"
 
 // Full-screen app launcher with parallelogram slice UI
-// Adapted from sadrach34 project for Hyprland
 Scope {
   id: appLauncher
 
-  readonly property color clrPrimary:          "#6272a4"
-  readonly property color clrPrimaryText:      "#f8f8f2"
-  readonly property color clrTertiary:         "#8be9fd"
-  readonly property string fnt:  "JetBrainsMono Nerd Font"
-  readonly property string fntI: "JetBrainsMono Nerd Font"
+  // External bindings
+  property var colors
+  property bool showing: false
+  property string homeDir: Quickshell.env("HOME")
+  property string configDir: homeDir + "/.config/quickshell"
+  property string cacheDir: (Quickshell.env("XDG_CACHE_HOME") || (homeDir + "/.cache")) + "/quickshell"
+  property string scriptsDir: configDir + "/scripts"
+  property string terminal: "kitty"
 
-  property bool cardVisible: false
-  property string searchText: ""
-  property string sourceFilter: ""
-  property bool hoverSelectionEnabled: false
-  property bool appsLoadedOnce: false
+  property string mainMonitor: ""
 
-  // Frequency-based search ranking
-  property string freqCachePath: Quickshell.env("HOME") + "/.cache/quickshell/app-launcher/freq.json"
-  property var freqData: ({})
+  // Service handles all data, search, caching, and launch logic
+  AppLauncherService {
+    id: service
+    scriptsDir: appLauncher.scriptsDir
+    homeDir: appLauncher.homeDir
+    cacheDir: appLauncher.cacheDir
+    configDir: appLauncher.configDir
+    terminal: appLauncher.terminal
 
-  FileView {
-    id: freqFile
-    path: appLauncher.freqCachePath
-    preload: true
-  }
-
-  function loadFreqData() {
-    try { appLauncher.freqData = JSON.parse(freqFile.text()) }
-    catch (e) { appLauncher.freqData = {} }
-  }
-
-  function saveFreqData() {
-    freqFile.setText(JSON.stringify(appLauncher.freqData))
-  }
-
-  function recordSelection(appName) {
-    var query = appLauncher.searchText.toLowerCase().trim()
-    if (query === "") return
-    var fd = appLauncher.freqData
-    for (var len = 2; len <= query.length; len++) {
-      var prefix = query.substring(0, len)
-      if (!fd[prefix]) fd[prefix] = {}
-      if (!fd[prefix][appName]) fd[prefix][appName] = 0
-      fd[prefix][appName] += 1
+    onSearchTextChanged: {
+      if (searchInput.text !== service.searchText)
+        searchInput.text = service.searchText
     }
-    appLauncher.freqData = fd
-    saveFreqData()
+
+    onModelUpdated: {
+      if (service.filteredModel.count > 0) {
+        sliceListView.currentIndex = 0
+        sliceListView.positionViewAtIndex(0, ListView.Beginning)
+      }
+    }
   }
-
-  function getFreqScore(appName) {
-    var query = appLauncher.searchText.toLowerCase().trim()
-    if (query === "" || !appLauncher.freqData[query]) return 0
-    return appLauncher.freqData[query][appName] || 0
-  }
-
-  property int sliceWidth:    135
-  property int expandedWidth: 900
-  property int sliceHeight:   520
-  property int skewOffset:    35
-  property int sliceSpacing:  -22
-  property int cardWidth:    1600
-  property int topBarHeight:   50
-  property int cardHeight: sliceHeight + topBarHeight + 60
-
-  property string scriptsPath: Quickshell.env("HOME") + "/.config/quickshell/scripts"
 
   Connections {
     target: root
     function onAppLauncherVisibleChanged() {
-      if (root.appLauncherVisible) {
-        appLauncher.searchText = ""
-        searchInput.text = ""
-        appLauncher.hoverSelectionEnabled = false
-        sliceListView.hoverArmed = false
-        sliceListView.lastMouseX = -1
-        sliceListView.lastMouseY = -1
-        loadFreqData()
-        resetIndexTimer.restart()
-        cardShowTimer.restart()
-        hoverEnableTimer.restart()
-        // Always refresh when opening so newly installed apps appear immediately.
-        if (!loadApps.running) {
-          loadApps.buf = ""
-          loadApps.running = false
-          loadApps.running = true
-        }
-      } else {
-        appLauncher.cardVisible = false
-        appLauncher.searchText = ""
-        searchInput.text = ""
-        appLauncher.hoverSelectionEnabled = false
-        sliceListView.hoverArmed = false
-        sliceListView.lastMouseX = -1
-        sliceListView.lastMouseY = -1
-      }
+      if (appLauncher.showing !== root.appLauncherVisible)
+        appLauncher.showing = root.appLauncherVisible
     }
   }
 
-  Component.onCompleted: {
-    // Preload once at startup to avoid empty launcher on first open.
-    if (!appsLoadedOnce && !loadApps.running) {
-      loadApps.buf = ""
-      loadApps.running = false
-      loadApps.running = true
+  // Show/hide lifecycle
+  onShowingChanged: {
+    if (root.appLauncherVisible !== showing)
+      root.appLauncherVisible = showing
+    if (showing) {
+      service.searchText = ""
+      searchInput.text = ""
+      service.loadFreqData()
+      cardShowTimer.restart()
+      service.start()
+    } else {
+      cardVisible = false
+      service.searchText = ""
+      searchInput.text = ""
     }
   }
 
-  Timer { id: cardShowTimer; interval: 50; onTriggered: appLauncher.cardVisible = true }
-  Timer { id: focusTimer;    interval: 80; onTriggered: sliceListView.forceActiveFocus() }
-  Timer { id: hoverEnableTimer; interval: 220; onTriggered: appLauncher.hoverSelectionEnabled = true }
-  Timer { id: resetIndexTimer; interval: 100; onTriggered: {
-      sliceListView.currentIndex = 0
-      sliceListView.positionViewAtIndex(0, ListView.SnapPosition)
-  }}
-
-  ListModel { id: appModel }
-  ListModel { id: filteredModel }
-
-  function sameAppList(arr) {
-    if (!Array.isArray(arr) || appModel.count !== arr.length) return false
-    for (var i = 0; i < arr.length; i++) {
-      var oldItem = appModel.get(i)
-      var newItem = arr[i] || {}
-      if ((oldItem.name || "") !== (newItem.name || "")) return false
-      if ((oldItem.exec || "") !== (newItem.exec || "")) return false
-      if ((oldItem.categories || "") !== (newItem.categories || "")) return false
-      if ((oldItem.iconPath || "") !== (newItem.iconPath || "")) return false
-      if ((oldItem.displayName || "") !== (newItem.displayName || "")) return false
-      if ((oldItem.terminal || false) !== (newItem.terminal || false)) return false
-    }
-    return true
-  }
-
-  function updateFilteredModel(preserveSelection) {
-    var keepSelection = preserveSelection === true
-    var prevExec = ""
-    var prevName = ""
-    if (keepSelection && sliceListView.currentIndex >= 0 && sliceListView.currentIndex < filteredModel.count) {
-      var selected = filteredModel.get(sliceListView.currentIndex)
-      prevExec = selected.exec || ""
-      prevName = selected.name || ""
-    }
-
-    var query = searchText.toLowerCase()
-    var sf = sourceFilter
-    var results = []
-    for (var i = 0; i < appModel.count; i++) {
-      var item = appModel.get(i)
-      if (query !== "" &&
-          item.name.toLowerCase().indexOf(query) === -1 &&
-          item.categories.toLowerCase().indexOf(query) === -1 &&
-          (item.displayName||"").toLowerCase().indexOf(query) === -1)
-        continue
-      if (sf === "game"  && item.categories.indexOf("Game")  === -1) continue
-      if (sf === "media" && item.categories.indexOf("Audio") === -1
-                         && item.categories.indexOf("Video") === -1) continue
-      if (sf === "steam" && (item.categories||"").indexOf("Steam") === -1) continue
-      results.push({
-        name: item.name, exec: item.exec, categories: item.categories,
-        iconPath: item.iconPath||"", terminal: item.terminal||false,
-        displayName: item.displayName||""
-      })
-    }
-    // Sort by frequency score when there's a query
-    if (query !== "") {
-      var freqMap = appLauncher.freqData[query] || {}
-      results.sort(function(a, b) {
-        var fa = freqMap[a.name] || 0
-        var fb = freqMap[b.name] || 0
-        if (fa !== fb) return fb - fa
-        return a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-      })
-    }
-    filteredModel.clear()
-    for (var j = 0; j < results.length; j++) filteredModel.append(results[j])
-    if (filteredModel.count > 0) {
-      var targetIndex = 0
-      if (keepSelection && (prevExec !== "" || prevName !== "")) {
-        for (var k = 0; k < filteredModel.count; k++) {
-          var cand = filteredModel.get(k)
-          if ((prevExec !== "" && cand.exec === prevExec) ||
-              (prevExec === "" && prevName !== "" && cand.name === prevName)) {
-            targetIndex = k
-            break
-          }
-        }
-      }
-      sliceListView.currentIndex = targetIndex
-      sliceListView.positionViewAtIndex(targetIndex, ListView.SnapPosition)
-    }
-  }
-
-  onSearchTextChanged: {
-    updateFilteredModel(false)
-    if (searchInput.text !== searchText) searchInput.text = searchText
-  }
-  onSourceFilterChanged: updateFilteredModel(false)
-
-  Process {
-    id: loadApps
-    command: ["python3", appLauncher.scriptsPath + "/desktop_apps.py"]
-    property string buf: ""
-    stdout: SplitParser { splitMarker: ""; onRead: data => loadApps.buf += data }
-    onExited: {
-      try {
-        var arr = JSON.parse(loadApps.buf.trim())
-        if (Array.isArray(arr) && arr.length >= 0) {
-          if (!sameAppList(arr)) {
-            appModel.clear()
-            for (var i = 0; i < arr.length; i++) {
-              var a = arr[i]
-              appModel.append({
-                name: a.name||"", exec: a.exec||"", categories: a.categories||"",
-                iconPath: a.iconPath||"", terminal: a.terminal||false,
-                displayName: a.displayName||""
-              })
-            }
-          }
-          appsLoadedOnce = true
-          appLauncher.updateFilteredModel(true)
-        }
-      } catch(e) {}
-      loadApps.buf = ""
-    }
-  }
-
-  // Desktop file watcher: reconstruye caché automáticamente cuando se instala/elimina una app
-  Process {
-    id: desktopWatcher
-    running: true
-    command: ["bash", "-c",
-      "dirs=(); for d in /usr/share/applications " +
-      "\"$HOME/.local/share/applications\" " +
-      "/var/lib/flatpak/exports/share/applications " +
-      "\"$HOME/.local/share/flatpak/exports/share/applications\"; do " +
-      "[ -d \"$d\" ] && dirs+=(\"$d\"); done; " +
-      "[ ${#dirs[@]} -eq 0 ] && exit 1; " +
-      "if command -v inotifywait >/dev/null 2>&1; then " +
-      "  exec inotifywait -m -r -e create,delete,modify,moved_to,moved_from --include '\\.desktop$' \"${dirs[@]}\"; " +
-      "else " +
-      "  while true; do sleep 12; echo poll; done; " +
-      "fi"
-    ]
-    stdout: SplitParser { onRead: line => desktopWatcherDebounce.restart() }
-    onExited: desktopWatcherRestart.start()
-  }
-
-  // Reiniciar watcher si termina inesperadamente
   Timer {
-    id: desktopWatcherRestart
-    interval: 5000
-    onTriggered: desktopWatcher.running = true
+    id: cardShowTimer
+    interval: 50
+    onTriggered: appLauncher.cardVisible = true
   }
 
-  // Debounce: agrupa cambios rápidos en una sola recarga
   Timer {
-    id: desktopWatcherDebounce
-    interval: 900
-    onTriggered: {
-      loadApps.buf = ""
-      loadApps.running = false
-      loadApps.running = true
-    }
+    id: focusTimer
+    interval: 50
+    onTriggered: sliceListView.forceActiveFocus()
   }
 
-  Process { id: appRunner; command: ["true"] }
-  Process { id: launchRunner; command: ["true"] }
+  // Slice geometry constants
+  property int sliceWidth: 135
+  property int expandedWidth: 924
+  property int sliceHeight: 520
+  property int skewOffset: 35
+  property int sliceSpacing: -22
 
-  function launchApp(exec_cmd, isTerminal, appName) {
-    if (appName) recordSelection(appName)
-    var cmd = exec_cmd
-    if (isTerminal) cmd = "kitty " + cmd
-    launchRunner.command = ["hyprctl", "dispatch", "exec", cmd]
-    launchRunner.running = false
-    launchRunner.running = true
-    root.appLauncherVisible = false
+  // Card dimensions
+  property int cardWidth: 1600
+  property int topBarHeight: 50
+  property int cardHeight: sliceHeight + topBarHeight + 60
+
+  property bool cardVisible: false
+
+  property int lastContentX: 0
+  property int lastIndex: 0
+
+  function resetScroll() {
+    lastContentX = 0
+    lastIndex = 0
+    sliceListView.currentIndex = 0
+    if (service.filteredModel.count > 0)
+      sliceListView.positionViewAtIndex(0, ListView.Beginning)
   }
 
-  function categoryBadge(cats) {
-    var c = cats || ""
-    if (c.indexOf("Game")        !== -1) return "GAME"
-    if (c.indexOf("Development") !== -1) return "DEV"
-    if (c.indexOf("Graphics")    !== -1) return "GFX"
-    if (c.indexOf("AudioVideo")  !== -1 || c.indexOf("Audio") !== -1 || c.indexOf("Video") !== -1) return "MEDIA"
-    if (c.indexOf("Network")     !== -1) return "NET"
-    if (c.indexOf("Office")      !== -1) return "OFFICE"
-    if (c.indexOf("System")      !== -1) return "SYS"
-    if (c.indexOf("Settings")    !== -1) return "CFG"
-    if (c.indexOf("Utility")     !== -1) return "UTIL"
-    return "APP"
-  }
 
-  function appGlyph(name, cats) {
-    var n = (name||"").toLowerCase()
-    var c = (cats||"").toLowerCase()
-    if (n.indexOf("firefox")  !== -1) return "󰈹"
-    if (n.indexOf("chrome")   !== -1 || n.indexOf("chromium") !== -1) return "󰊯"
-    if (n.indexOf("spotify")  !== -1) return "󰓇"
-    if (n.indexOf("discord")  !== -1) return "󰙯"
-    if (n.indexOf("telegram") !== -1) return "󰔁"
-    if (n.indexOf("code")     !== -1 || n.indexOf("vscode") !== -1) return "󰨞"
-    if (n.indexOf("kitty")    !== -1 || n.indexOf("alacritty") !== -1) return ""
-    if (n.indexOf("terminal") !== -1) return ""
-    if (n.indexOf("steam")    !== -1) return "󰓓"
-    if (n.indexOf("thunar")   !== -1 || n.indexOf("nautilus") !== -1) return "󰉋"
-    if (n.indexOf("gimp")     !== -1) return "󰏘"
-    if (n.indexOf("blender")  !== -1) return "󰂫"
-    if (n.indexOf("obs")      !== -1) return "󰕧"
-    if (n.indexOf("vlc")      !== -1 || n.indexOf("mpv") !== -1) return "󰕼"
-    if (c.indexOf("game")     !== -1) return "󰊗"
-    if (c.indexOf("audio")    !== -1 || c.indexOf("video")      !== -1) return "󰎆"
-    if (c.indexOf("graphics") !== -1) return "󰏘"
-    if (c.indexOf("network")  !== -1) return "󰖟"
-    if (c.indexOf("development") !== -1) return "󰅩"
-    if (c.indexOf("system")   !== -1) return "󰜖"
-    return "󰘔"
-  }
-
+  // Full-screen overlay panel
   PanelWindow {
     id: launcherPanel
-    screen: Quickshell.screens[0]
-    anchors { top: true; bottom: true; left: true; right: true }
+
+    screen: Quickshell.screens.find(s => s.name === appLauncher.mainMonitor) ?? Quickshell.screens[0]
+
+    anchors {
+      top: true
+      bottom: true
+      left: true
+      right: true
+    }
+
+    visible: appLauncher.showing
     color: "transparent"
-    WlrLayershell.namespace: "qs-app-launcher"
+
+    WlrLayershell.namespace: "app-launcher-parallel"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: root.appLauncherVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: appLauncher.showing ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
     exclusionMode: ExclusionMode.Ignore
-    visible: root.appLauncherVisible
+
 
     Rectangle {
       anchors.fill: parent
-      color: Qt.rgba(0, 0, 0, 0.55)
+      color: Qt.rgba(0, 0, 0, 0.5)
       opacity: appLauncher.cardVisible ? 1 : 0
       Behavior on opacity { NumberAnimation { duration: 300 } }
     }
+
+
     MouseArea {
       anchors.fill: parent
-      onClicked: root.appLauncherVisible = false
+      onClicked: appLauncher.showing = false
     }
 
+
+    // Card container with fade-in animation
     Item {
       id: cardContainer
-      width: appLauncher.cardWidth; height: appLauncher.cardHeight
+      width: appLauncher.cardWidth
+      height: appLauncher.cardHeight
       anchors.centerIn: parent
       visible: appLauncher.cardVisible
+
       opacity: 0
       property bool animateIn: appLauncher.cardVisible
+
       onAnimateInChanged: {
         fadeInAnim.stop()
-        if (animateIn) { opacity = 0; fadeInAnim.start(); focusTimer.restart() }
-      }
-      NumberAnimation { id: fadeInAnim; target: cardContainer; property: "opacity"; from: 0; to: 1; duration: 400; easing.type: Easing.OutCubic }
-      MouseArea { anchors.fill: parent; onClicked: {} }
-
-      Rectangle {
-        id: filterBarBg
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top; anchors.topMargin: 10
-        width: topFilterBar.width + 30; height: topFilterBar.height + 14
-        radius: height / 2
-        color: Qt.rgba(0.07, 0.07, 0.12, 0.90)
-        z: 10
+        if (animateIn) {
+          opacity = 0
+          fadeInAnim.start()
+          focusTimer.restart()
+        }
       }
 
-      Row {
-        id: topFilterBar
-        anchors.centerIn: filterBarBg
-        spacing: 16; z: 11
+      NumberAnimation {
+        id: fadeInAnim
+        target: cardContainer
+        property: "opacity"
+        from: 0; to: 1
+        duration: 400
+        easing.type: Easing.OutCubic
+      }
 
+      MouseArea {
+        anchors.fill: parent
+        onClicked: {}
+      }
+
+
+      Item {
+        id: backgroundRect
+        anchors.fill: parent
+
+
+        Rectangle {
+          id: filterBarBg
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.top: parent.top
+          anchors.topMargin: 10
+          width: topFilterBar.width + 30
+          height: topFilterBar.height + 14
+          radius: height / 2
+          color: appLauncher.colors ? Qt.rgba(appLauncher.colors.surfaceContainer.r,
+                                               appLauncher.colors.surfaceContainer.g,
+                                               appLauncher.colors.surfaceContainer.b, 0.85)
+                                    : Qt.rgba(0.1, 0.12, 0.18, 0.85)
+          z: 10
+        }
+
+        // Top filter bar (source filters, search input)
         Row {
-          spacing: 4; anchors.verticalCenter: parent.verticalCenter
-          Repeater {
-            model: [
-              { filter: "",      icon: "󰄶", label: "Todo" },
-              { filter: "game",  icon: "󰊗", label: "Juegos" },
-              { filter: "steam", icon: "󰓓", label: "Steam" },
-              { filter: "media", icon: "󰎆", label: "Media" }
-            ]
+          id: topFilterBar
+          anchors.centerIn: filterBarBg
+          spacing: 16
+          z: 11
+
+
+          Row {
+            id: sourceFilterRow
+            spacing: 4
+            anchors.verticalCenter: parent.verticalCenter
+
+            Repeater {
+              model: [
+                { filter: "", icon: "󰄶", label: "All" },
+                { filter: "desktop", icon: "󰀻", label: "Apps" },
+                { filter: "game", icon: "󰊗", label: "Games" },
+                { filter: "steam", icon: "󰓓", label: "Steam" }
+              ]
+
+              Rectangle {
+                width: 32
+                height: 24
+                radius: 4
+                property bool isSelected: service.sourceFilter === modelData.filter
+                property bool isHovered: sourceMouseArea.containsMouse
+
+                color: isSelected
+                  ? (appLauncher.colors ? appLauncher.colors.primary : "#4fc3f7")
+                  : (isHovered
+                    ? (appLauncher.colors ? Qt.rgba(appLauncher.colors.surfaceVariant.r, appLauncher.colors.surfaceVariant.g, appLauncher.colors.surfaceVariant.b, 0.5) : Qt.rgba(1, 1, 1, 0.15))
+                    : "transparent")
+
+                border.width: isSelected ? 0 : 1
+                border.color: isHovered ? (appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, 0.4) : Qt.rgba(1, 1, 1, 0.2)) : "transparent"
+
+                Behavior on color { ColorAnimation { duration: 100 } }
+
+                Text {
+                  anchors.centerIn: parent
+                  text: modelData.icon
+                  font.pixelSize: 14
+                  font.family: Style.fontFamilyIcons
+                  color: parent.isSelected
+                    ? (appLauncher.colors ? appLauncher.colors.primaryText : "#000")
+                    : (appLauncher.colors ? appLauncher.colors.tertiary : "#8bceff")
+                }
+
+                MouseArea {
+                  id: sourceMouseArea
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    if (parent.isSelected) {
+                      service.sourceFilter = ""
+                    } else {
+                      service.sourceFilter = modelData.filter
+                    }
+                  }
+                }
+
+                ToolTip {
+                  visible: sourceMouseArea.containsMouse
+                  text: modelData.label
+                  delay: 500
+                  contentWidth: implicitContentWidth
+                }
+              }
+            }
+          }
+
+
+          Rectangle {
+            width: 1; height: 20
+            color: appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, 0.3) : Qt.rgba(1, 1, 1, 0.2)
+            anchors.verticalCenter: parent.verticalCenter
+          }
+
+
+          Text {
+            text: "󰍉"
+            font.family: Style.fontFamilyIcons
+            font.pixelSize: 18
+            color: appLauncher.colors ? appLauncher.colors.tertiary : "#8bceff"
+            anchors.verticalCenter: parent.verticalCenter
+          }
+
+
+          TextInput {
+            id: searchInput
+            width: 200
+            font.family: Style.fontFamily
+            font.pixelSize: 14
+            font.weight: Font.Medium
+            color: "#ffffff"
+            anchors.verticalCenter: parent.verticalCenter
+            clip: true
+            onTextChanged: service.searchText = text
+            Keys.onPressed: event => {
+              if (event.key === Qt.Key_Up || event.key === Qt.Key_Backtab) {
+                if (sliceListView.currentIndex > 0) sliceListView.currentIndex--
+                else sliceListView.currentIndex = service.filteredModel.count - 1
+                event.accepted = true
+              } else if (event.key === Qt.Key_Down || event.key === Qt.Key_Tab) {
+                if (sliceListView.currentIndex < service.filteredModel.count - 1) sliceListView.currentIndex++
+                else sliceListView.currentIndex = 0
+                event.accepted = true
+              } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                if (sliceListView.currentIndex >= 0 && sliceListView.currentIndex < service.filteredModel.count) {
+                  var app = service.filteredModel.get(sliceListView.currentIndex)
+                  service.launchApp(app.exec, app.terminal, app.name)
+                  appLauncher.showing = false
+                }
+                event.accepted = true
+              } else if (event.key === Qt.Key_Escape) {
+                appLauncher.showing = false
+                event.accepted = true
+              }
+            }
+
+            Text {
+              anchors.fill: parent
+              text: ""
+              font: searchInput.font
+              color: appLauncher.colors ? Qt.rgba(appLauncher.colors.primaryText.r, appLauncher.colors.primaryText.g, appLauncher.colors.primaryText.b, 0.4) : Qt.rgba(1, 1, 1, 0.4)
+              visible: !searchInput.text
+            }
+          }
+
+
+          Text {
+            text: ""
+            font.family: Style.fontFamily
+            font.pixelSize: 11
+            font.weight: Font.Medium
+            color: appLauncher.colors ? Qt.rgba(appLauncher.colors.primaryText.r, appLauncher.colors.primaryText.g, appLauncher.colors.primaryText.b, 0.5) : Qt.rgba(1, 1, 1, 0.5)
+            anchors.verticalCenter: parent.verticalCenter
+          }
+        }
+
+
+        // Cache loading overlay with progress bar
+        Rectangle {
+          anchors.fill: parent
+          color: appLauncher.colors ? Qt.rgba(appLauncher.colors.surfaceContainer.r,
+                                               appLauncher.colors.surfaceContainer.g,
+                                               appLauncher.colors.surfaceContainer.b, 0.95)
+                                    : Qt.rgba(0.08, 0.1, 0.14, 0.95)
+          radius: 20
+          visible: service.cacheLoading
+          z: 50
+
+          Rectangle {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: 12
+            width: 300
+            height: 4
+            radius: 2
+            color: Qt.rgba(1, 1, 1, 0.1)
+
             Rectangle {
-              width: 32; height: 24; radius: 4
-              property bool isSelected: appLauncher.sourceFilter === modelData.filter
-              property bool isHovered: fltMouse.containsMouse
-              color: isSelected ? appLauncher.clrPrimary : (isHovered ? Qt.rgba(0.3,0.3,0.5,0.4) : "transparent")
-              border.width: isSelected ? 0 : 1
-              border.color: isHovered ? Qt.rgba(0.38,0.45,0.64,0.5) : "transparent"
-              Behavior on color { ColorAnimation { duration: 100 } }
-              Text {
-                anchors.centerIn: parent; text: modelData.icon
-                font.pixelSize: 14; font.family: appLauncher.fntI
-                color: parent.isSelected ? appLauncher.clrPrimaryText : appLauncher.clrTertiary
-              }
-              MouseArea {
-                id: fltMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                onClicked: { if (parent.isSelected) appLauncher.sourceFilter = ""; else appLauncher.sourceFilter = modelData.filter }
-              }
-              ToolTip { visible: fltMouse.containsMouse; text: modelData.label; delay: 500 }
+              anchors.left: parent.left
+              anchors.top: parent.top
+              anchors.bottom: parent.bottom
+              radius: 2
+              width: service.cacheTotal > 0
+                ? parent.width * (service.cacheProgress / service.cacheTotal)
+                : 0
+              color: appLauncher.colors ? appLauncher.colors.primary : "#4fc3f7"
+              Behavior on width { NumberAnimation { duration: 100; easing.type: Easing.OutCubic } }
             }
           }
-        }
 
-        Rectangle { width: 1; height: 20; color: Qt.rgba(0.38,0.45,0.64,0.3); anchors.verticalCenter: parent.verticalCenter }
-
-        Text { text: "󰍉"; font.family: appLauncher.fntI; font.pixelSize: 18; color: appLauncher.clrTertiary; anchors.verticalCenter: parent.verticalCenter }
-
-        TextInput {
-          id: searchInput
-          width: 200
-          font.family: appLauncher.fnt; font.pixelSize: 14; font.weight: Font.Medium
-          color: "#ffffff"; anchors.verticalCenter: parent.verticalCenter; clip: true
-          onTextChanged: appLauncher.searchText = text
-          Keys.onPressed: event => {
-            if (event.key === Qt.Key_Up || event.key === Qt.Key_Backtab) {
-              if (sliceListView.currentIndex > 0) sliceListView.currentIndex--
-              else sliceListView.currentIndex = filteredModel.count - 1
-              event.accepted = true
-            } else if (event.key === Qt.Key_Down || event.key === Qt.Key_Tab) {
-              if (sliceListView.currentIndex < filteredModel.count - 1) sliceListView.currentIndex++
-              else sliceListView.currentIndex = 0
-              event.accepted = true
-            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-              if (sliceListView.currentIndex >= 0 && sliceListView.currentIndex < filteredModel.count) {
-                var app = filteredModel.get(sliceListView.currentIndex)
-                appLauncher.launchApp(app.exec, app.terminal, app.name)
-              }
-              event.accepted = true
-            } else if (event.key === Qt.Key_Escape) {
-              root.appLauncherVisible = false
-              event.accepted = true
-            }
+          Text {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -12
+            text: service.cacheTotal > 0
+              ? "LOADING APPS... " + service.cacheProgress + " / " + service.cacheTotal
+              : "SCANNING..."
+            color: appLauncher.colors ? appLauncher.colors.tertiary : "#8bceff"
+            font.family: Style.fontFamily
+            font.pixelSize: 12
+            font.weight: Font.Medium
+            font.letterSpacing: 0.5
           }
-          Text { anchors.fill: parent; text: "Buscar apps..."; font: searchInput.font; color: Qt.rgba(1,1,1,0.35); visible: !searchInput.text }
-        }
-
-        Text {
-          text: filteredModel.count + " apps"
-          font.family: appLauncher.fnt; font.pixelSize: 11; font.weight: Font.Medium
-          color: Qt.rgba(1,1,1,0.4); anchors.verticalCenter: parent.verticalCenter
         }
       }
     }
 
+
+    // Horizontal parallelogram slice list view
     ListView {
       id: sliceListView
-      anchors.top: cardContainer.top; anchors.topMargin: appLauncher.topBarHeight + 15
-      anchors.bottom: cardContainer.bottom; anchors.bottomMargin: 20
+      anchors.top: cardContainer.top
+      anchors.topMargin: appLauncher.topBarHeight + 15
+      anchors.bottom: cardContainer.bottom
+      anchors.bottomMargin: 20
       anchors.horizontalCenter: parent.horizontalCenter
       property int visibleCount: 12
       width: appLauncher.expandedWidth + (visibleCount - 1) * (appLauncher.sliceWidth + appLauncher.sliceSpacing)
+
       orientation: ListView.Horizontal
-      model: filteredModel
-      clip: false; spacing: appLauncher.sliceSpacing
-      flickDeceleration: 1500; maximumFlickVelocity: 3000
+      model: service.filteredModel
+      clip: false
+      spacing: appLauncher.sliceSpacing
+
+      flickDeceleration: 1500
+      maximumFlickVelocity: 3000
       boundsBehavior: Flickable.StopAtBounds
       cacheBuffer: appLauncher.expandedWidth * 4
+
       visible: appLauncher.cardVisible
+
       property bool keyboardNavActive: false
-      property bool hoverArmed: false
-      property real lastMouseX: -1; property real lastMouseY: -1
-      highlightFollowsCurrentItem: true; highlightMoveDuration: 350
+      property real lastMouseX: -1
+      property real lastMouseY: -1
+
+      highlightFollowsCurrentItem: true
+      highlightMoveDuration: 350
       highlight: Item {}
       preferredHighlightBegin: (width - appLauncher.expandedWidth) / 2
-      preferredHighlightEnd:   (width + appLauncher.expandedWidth) / 2
-      highlightRangeMode: ListView.ApplyRange
+      preferredHighlightEnd: (width + appLauncher.expandedWidth) / 2
+      highlightRangeMode: ListView.StrictlyEnforceRange
       header: Item { width: (sliceListView.width - appLauncher.expandedWidth) / 2; height: 1 }
       footer: Item { width: (sliceListView.width - appLauncher.expandedWidth) / 2; height: 1 }
-      focus: root.appLauncherVisible
-      onVisibleChanged: { if (visible) forceActiveFocus() }
+
+      focus: appLauncher.showing
+      onVisibleChanged: {
+        if (visible) forceActiveFocus()
+      }
+
+      Connections {
+        target: appLauncher
+        function onShowingChanged() {
+          if (appLauncher.showing) {
+            sliceListView.forceActiveFocus()
+          }
+        }
+      }
 
       MouseArea {
-        anchors.fill: parent; propagateComposedEvents: true
-        onWheel: function(w) {
-          if (w.angleDelta.y > 0 || w.angleDelta.x > 0) sliceListView.currentIndex = Math.max(0, sliceListView.currentIndex - 1)
-          else sliceListView.currentIndex = Math.min(filteredModel.count-1, sliceListView.currentIndex+1)
+        anchors.fill: parent
+        propagateComposedEvents: true
+        onWheel: function(wheel) {
+          var step = 1
+          if (wheel.angleDelta.y > 0 || wheel.angleDelta.x > 0) {
+            sliceListView.currentIndex = Math.max(0, sliceListView.currentIndex - step)
+          } else if (wheel.angleDelta.y < 0 || wheel.angleDelta.x < 0) {
+            sliceListView.currentIndex = Math.min(service.filteredModel.count - 1, sliceListView.currentIndex + step)
+          }
         }
-        onPressed: m => m.accepted = false
-        onReleased: m => m.accepted = false
-        onClicked: m => m.accepted = false
+        onPressed: function(mouse) { mouse.accepted = false }
+        onReleased: function(mouse) { mouse.accepted = false }
+        onClicked: function(mouse) { mouse.accepted = false }
       }
 
       Keys.onPressed: event => {
-        if (event.key === Qt.Key_Escape) { root.appLauncherVisible = false; event.accepted = true; return }
+        if (event.key === Qt.Key_Escape) {
+          appLauncher.showing = false
+          event.accepted = true
+          return
+        }
+
+
         if (event.text && event.text.length > 0 && !event.modifiers) {
           var c = event.text.charCodeAt(0)
-          if (c >= 32 && c < 127) { searchInput.text += event.text; searchInput.forceActiveFocus(); event.accepted = true; return }
-        }
-        if (event.key === Qt.Key_Backspace) {
-          if (searchInput.text.length > 0) searchInput.text = searchInput.text.slice(0,-1)
-          event.accepted = true; return
-        }
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-          if (sliceListView.currentIndex >= 0 && sliceListView.currentIndex < filteredModel.count) {
-            var a = filteredModel.get(sliceListView.currentIndex)
-            appLauncher.launchApp(a.exec, a.terminal, a.name)
+          if (c >= 32 && c < 127) {
+            searchInput.text += event.text
+            searchInput.forceActiveFocus()
+            event.accepted = true
+            return
           }
-          event.accepted = true; return
         }
+
+        if (event.key === Qt.Key_Backspace) {
+          if (searchInput.text.length > 0) {
+            searchInput.text = searchInput.text.slice(0, -1)
+          }
+          event.accepted = true
+          return
+        }
+
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+          if (sliceListView.currentIndex >= 0 && sliceListView.currentIndex < service.filteredModel.count) {
+            var app = service.filteredModel.get(sliceListView.currentIndex)
+            service.launchApp(app.exec, app.terminal, app.name)
+            appLauncher.showing = false
+          }
+          event.accepted = true
+          return
+        }
+
         sliceListView.keyboardNavActive = true
-        if (event.key === Qt.Key_Left || event.key === Qt.Key_Up) { if (currentIndex > 0) currentIndex--; event.accepted = true }
-        else if (event.key === Qt.Key_Right || event.key === Qt.Key_Down) { if (currentIndex < filteredModel.count-1) currentIndex++; event.accepted = true }
+
+        if (event.key === Qt.Key_Left) {
+          if (currentIndex > 0) {
+            currentIndex--
+          }
+          event.accepted = true
+          return
+        }
+        if (event.key === Qt.Key_Right) {
+          if (currentIndex < service.filteredModel.count - 1) {
+            currentIndex++
+          }
+          event.accepted = true
+          return
+        }
       }
 
+
+      // Parallelogram slice delegate
       delegate: Item {
         id: delegateItem
         width: isCurrent ? appLauncher.expandedWidth : appLauncher.sliceWidth
         height: sliceListView.height
         property bool isCurrent: ListView.isCurrentItem
         property bool isHovered: itemMouseArea.containsMouse
-        z: isCurrent ? 100 : (isHovered ? 90 : (50 - Math.min(Math.abs(index - sliceListView.currentIndex), 50)))
+        z: isCurrent ? 100 : (isHovered ? 90 : 50 - Math.min(Math.abs(index - sliceListView.currentIndex), 50))
         property real viewX: x - sliceListView.contentX
         property real fadeZone: appLauncher.sliceWidth * 1.5
         property real edgeOpacity: {
           if (fadeZone <= 0) return 1.0
           var center = viewX + width * 0.5
-          var leftFade  = Math.min(1.0, Math.max(0.0, center / fadeZone))
+          var leftFade = Math.min(1.0, Math.max(0.0, center / fadeZone))
           var rightFade = Math.min(1.0, Math.max(0.0, (sliceListView.width - center) / fadeZone))
           return Math.min(leftFade, rightFade)
         }
         opacity: edgeOpacity
-        Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+        Behavior on width {
+          NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+        }
 
+
+        // Parallelogram hit-testing mask
         containmentMask: Item {
+          id: hitMask
           function contains(point) {
-            var w = delegateItem.width; var h = delegateItem.height; var sk = appLauncher.skewOffset
+            var w = delegateItem.width
+            var h = delegateItem.height
+            var sk = appLauncher.skewOffset
             if (h <= 0 || w <= 0) return false
-            return point.x >= sk*(1.0-point.y/h) && point.x <= w-sk*(point.y/h) && point.y >= 0 && point.y <= h
+            var leftX = sk * (1.0 - point.y / h)
+            var rightX = w - sk * (point.y / h)
+            return point.x >= leftX && point.x <= rightX && point.y >= 0 && point.y <= h
           }
         }
 
+
+        // Drop shadow canvas behind slice
         Canvas {
-          z: -1; anchors.fill: parent; anchors.margins: -10
+          id: shadowCanvas
+          z: -1
+          anchors.fill: parent
+          anchors.margins: -10
           property real shadowOffsetX: delegateItem.isCurrent ? 4 : 2
           property real shadowOffsetY: delegateItem.isCurrent ? 10 : 5
-          property real shadowAlpha:   delegateItem.isCurrent ? 0.6 : 0.4
-          onWidthChanged: requestPaint(); onHeightChanged: requestPaint(); onShadowAlphaChanged: requestPaint()
+          property real shadowAlpha: delegateItem.isCurrent ? 0.6 : 0.4
+          onWidthChanged: requestPaint()
+          onHeightChanged: requestPaint()
+          onShadowAlphaChanged: requestPaint()
           onPaint: {
-            var ctx = getContext("2d"); ctx.clearRect(0,0,width,height)
-            var ox=10,oy=10,w=delegateItem.width,h=delegateItem.height,sk=appLauncher.skewOffset
-            var sx=shadowOffsetX,sy=shadowOffsetY
-            var layers=[{dx:sx,dy:sy,alpha:shadowAlpha*0.5},{dx:sx*0.6,dy:sy*0.6,alpha:shadowAlpha*0.3},{dx:sx*1.4,dy:sy*1.4,alpha:shadowAlpha*0.2}]
-            for(var i=0;i<layers.length;i++){var l=layers[i];ctx.globalAlpha=l.alpha;ctx.fillStyle="#000";ctx.beginPath();ctx.moveTo(ox+sk+l.dx,oy+l.dy);ctx.lineTo(ox+w+l.dx,oy+l.dy);ctx.lineTo(ox+w-sk+l.dx,oy+h+l.dy);ctx.lineTo(ox+l.dx,oy+h+l.dy);ctx.closePath();ctx.fill()}
+            var ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+            var ox = 10
+            var oy = 10
+            var w = delegateItem.width
+            var h = delegateItem.height
+            var sk = appLauncher.skewOffset
+            var sx = shadowOffsetX
+            var sy = shadowOffsetY
+            var layers = [
+              { dx: sx, dy: sy, alpha: shadowAlpha * 0.5 },
+              { dx: sx * 0.6, dy: sy * 0.6, alpha: shadowAlpha * 0.3 },
+              { dx: sx * 1.4, dy: sy * 1.4, alpha: shadowAlpha * 0.2 }
+            ]
+            for (var i = 0; i < layers.length; i++) {
+              var l = layers[i]
+              ctx.globalAlpha = l.alpha
+              ctx.fillStyle = "#000000"
+              ctx.beginPath()
+              ctx.moveTo(ox + sk + l.dx, oy + l.dy)
+              ctx.lineTo(ox + w + l.dx, oy + l.dy)
+              ctx.lineTo(ox + w - sk + l.dx, oy + h + l.dy)
+              ctx.lineTo(ox + l.dx, oy + h + l.dy)
+              ctx.closePath()
+              ctx.fill()
+            }
           }
         }
 
+
+        // Image container (background, thumbnail, parallelogram mask)
         Item {
-          id: imageContainer; anchors.fill: parent
+          id: imageContainer
+          anchors.fill: parent
+
+
+          Image {
+            id: bgImage
+            anchors.fill: parent
+            source: model.background ? "file://" + model.background : ""
+            fillMode: Image.PreserveAspectCrop
+            smooth: true
+            asynchronous: true
+            visible: status === Image.Ready
+            sourceSize.width: appLauncher.expandedWidth
+            sourceSize.height: appLauncher.sliceHeight
+          }
+
+
           Rectangle {
             anchors.fill: parent
             gradient: Gradient {
-              GradientStop { position: 0.0; color: Qt.rgba(0.07, 0.07, 0.12, 1) }
-              GradientStop { position: 1.0; color: Qt.rgba(0.04, 0.04, 0.08, 1) }
+              GradientStop { position: 0.0; color: appLauncher.colors ? Qt.rgba(appLauncher.colors.surfaceContainer.r, appLauncher.colors.surfaceContainer.g, appLauncher.colors.surfaceContainer.b, 1) : "#1a1c2e" }
+              GradientStop { position: 1.0; color: appLauncher.colors ? Qt.rgba(appLauncher.colors.surface.r, appLauncher.colors.surface.g, appLauncher.colors.surface.b, 1) : "#0e1018" }
             }
+            visible: !bgImage.visible && (!thumbImage.visible || thumbImage.status !== Image.Ready)
           }
-          Image {
-            id: appIcon
-            anchors.centerIn: parent; anchors.verticalCenterOffset: -20
-            width:  delegateItem.isCurrent ? 80 : 44
-            height: width
-            source: model.iconPath ? "file://" + model.iconPath : ""
-            fillMode: Image.PreserveAspectFit
-            asynchronous: true; smooth: true; cache: true
-            visible: status === Image.Ready
-            Behavior on width { NumberAnimation { duration: 200 } }
-          }
+
           Text {
-            anchors.centerIn: parent; anchors.verticalCenterOffset: -20
-            visible: appIcon.status !== Image.Ready
-            text: appLauncher.appGlyph(model.name, model.categories)
-            font.pixelSize: delegateItem.isCurrent ? 96 : 48; font.family: appLauncher.fntI
-            color: delegateItem.isCurrent ? Qt.rgba(0.38,0.45,0.64,0.5) : Qt.rgba(1,1,1,0.1)
-            Behavior on font.pixelSize { NumberAnimation { duration: 200 } }
-            Behavior on color { ColorAnimation { duration: 200 } }
+            anchors.centerIn: parent
+            text: model.customIcon || ""
+            font.family: Style.fontFamilyIcons
+            font.pixelSize: 48
+            color: appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, 0.7) : Qt.rgba(1, 1, 1, 0.5)
+            visible: model.customIcon !== "" && !bgImage.visible
           }
+
+
+          Image {
+            id: thumbImage
+            anchors.fill: parent
+            source: model.thumb ? "file://" + model.thumb : ""
+            fillMode: model.source === "steam" ? Image.PreserveAspectCrop : Image.Pad
+            horizontalAlignment: Image.AlignHCenter
+            verticalAlignment: Image.AlignVCenter
+            smooth: true
+            asynchronous: true
+            sourceSize.width: appLauncher.expandedWidth
+            sourceSize.height: appLauncher.sliceHeight
+            visible: model.thumb !== "" && !bgImage.visible
+          }
+
+
           Rectangle {
             anchors.fill: parent
-            color: Qt.rgba(0,0,0, delegateItem.isCurrent ? 0 : (delegateItem.isHovered ? 0.15 : 0.45))
+            color: Qt.rgba(0, 0, 0, delegateItem.isCurrent ? 0 : (delegateItem.isHovered ? 0.15 : 0.4))
             Behavior on color { ColorAnimation { duration: 200 } }
           }
-          layer.enabled: true; layer.smooth: true; layer.samples: 4
+
+          layer.enabled: true
+          layer.smooth: true
+          layer.samples: 4
           layer.effect: MultiEffect {
             maskEnabled: true
             maskSource: ShaderEffectSource {
               sourceItem: Item {
-                width: imageContainer.width; height: imageContainer.height
-                layer.enabled: true; layer.smooth: true; layer.samples: 8
+                width: imageContainer.width
+                height: imageContainer.height
+                layer.enabled: true
+                layer.smooth: true
+                layer.samples: 8
                 Shape {
-                  anchors.fill: parent; antialiasing: true; preferredRendererType: Shape.CurveRenderer
+                  anchors.fill: parent
+                  antialiasing: true
+                  preferredRendererType: Shape.CurveRenderer
                   ShapePath {
-                    fillColor: "white"; strokeColor: "transparent"
-                    startX: appLauncher.skewOffset; startY: 0
-                    PathLine { x: delegateItem.width;                        y: 0 }
-                    PathLine { x: delegateItem.width-appLauncher.skewOffset; y: delegateItem.height }
-                    PathLine { x: 0;                                         y: delegateItem.height }
-                    PathLine { x: appLauncher.skewOffset;                    y: 0 }
+                    fillColor: "white"
+                    strokeColor: "transparent"
+                    startX: appLauncher.skewOffset
+                    startY: 0
+                    PathLine { x: delegateItem.width; y: 0 }
+                    PathLine { x: delegateItem.width - appLauncher.skewOffset; y: delegateItem.height }
+                    PathLine { x: 0; y: delegateItem.height }
+                    PathLine { x: appLauncher.skewOffset; y: 0 }
                   }
                 }
               }
             }
-            maskThresholdMin: 0.3; maskSpreadAtMin: 0.3
+            maskThresholdMin: 0.3
+            maskSpreadAtMin: 0.3
           }
         }
 
+
+        // Parallelogram glow border
         Shape {
-          anchors.fill: parent; antialiasing: true; preferredRendererType: Shape.CurveRenderer
+          id: glowBorder
+          anchors.fill: parent
+          antialiasing: true
+          preferredRendererType: Shape.CurveRenderer
+          opacity: 1.0
           ShapePath {
             fillColor: "transparent"
-            strokeColor: delegateItem.isCurrent ? appLauncher.clrPrimary
-              : (delegateItem.isHovered ? Qt.rgba(0.38,0.45,0.64,0.4) : Qt.rgba(0,0,0,0.6))
+            strokeColor: delegateItem.isCurrent
+              ? (appLauncher.colors ? appLauncher.colors.primary : "#8BC34A")
+              : (delegateItem.isHovered
+                ? Qt.rgba(appLauncher.colors ? appLauncher.colors.primary.r : 0.5, appLauncher.colors ? appLauncher.colors.primary.g : 0.76, appLauncher.colors ? appLauncher.colors.primary.b : 0.29, 0.4)
+                : Qt.rgba(0, 0, 0, 0.6))
             Behavior on strokeColor { ColorAnimation { duration: 200 } }
             strokeWidth: delegateItem.isCurrent ? 3 : 1
-            startX: appLauncher.skewOffset; startY: 0
-            PathLine { x: delegateItem.width;                        y: 0 }
-            PathLine { x: delegateItem.width-appLauncher.skewOffset; y: delegateItem.height }
-            PathLine { x: 0;                                         y: delegateItem.height }
-            PathLine { x: appLauncher.skewOffset;                    y: 0 }
+            startX: appLauncher.skewOffset
+            startY: 0
+            PathLine { x: delegateItem.width; y: 0 }
+            PathLine { x: delegateItem.width - appLauncher.skewOffset; y: delegateItem.height }
+            PathLine { x: 0; y: delegateItem.height }
+            PathLine { x: appLauncher.skewOffset; y: 0 }
           }
         }
 
+
         Rectangle {
-          anchors.bottom: parent.bottom; anchors.bottomMargin: 40
+          anchors.top: parent.top
+          anchors.topMargin: 10
+          anchors.right: parent.right
+          anchors.rightMargin: 10
+          width: 22
+          height: 22
+          radius: 11
+          color: model.source === "steam"
+            ? (appLauncher.colors ? appLauncher.colors.primary : "#4fc3f7")
+            : Qt.rgba(0, 0, 0, 0.7)
+          border.width: 1
+          border.color: model.source === "steam"
+            ? "transparent"
+            : (appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, 0.6) : Qt.rgba(1, 1, 1, 0.4))
+          visible: model.source === "steam"
+          z: 10
+
+          Text {
+            anchors.centerIn: parent
+            text: "󰓓"
+            font.family: Style.fontFamilyIcons
+            font.pixelSize: 12
+            color: model.source === "steam"
+              ? (appLauncher.colors ? appLauncher.colors.primaryText : "#000")
+              : (appLauncher.colors ? appLauncher.colors.primary : "#4fc3f7")
+          }
+        }
+
+
+        // App name label (visible when selected)
+        Rectangle {
+          id: nameLabel
+          anchors.bottom: parent.bottom
+          anchors.bottomMargin: 40
           anchors.horizontalCenter: parent.horizontalCenter
-          width: nameText.width+24; height: 32; radius: 6
-          color: Qt.rgba(0,0,0,0.75)
-          border.width: 1; border.color: Qt.rgba(0.38,0.45,0.64,0.5)
+          width: nameText.width + 24
+          height: 32
+          radius: 6
+          color: Qt.rgba(0, 0, 0, 0.75)
+          border.width: 1
+          border.color: appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, 0.5) : Qt.rgba(1, 1, 1, 0.2)
           visible: delegateItem.isCurrent
           opacity: delegateItem.isCurrent ? 1 : 0
           Behavior on opacity { NumberAnimation { duration: 200 } }
           Text {
-            id: nameText; anchors.centerIn: parent
-            text: model.name.toUpperCase()
-            font.family: appLauncher.fnt; font.pixelSize: 12; font.weight: Font.Bold; font.letterSpacing: 0.5
-            color: appLauncher.clrTertiary; elide: Text.ElideMiddle; maximumLineCount: 1
-            width: Math.min(implicitWidth, delegateItem.width-60)
+            id: nameText
+            anchors.centerIn: parent
+            text: (model.displayName || model.name).toUpperCase()
+            font.family: Style.fontFamily
+            font.pixelSize: 12
+            font.weight: Font.Bold
+            font.letterSpacing: 0.5
+            color: appLauncher.colors ? appLauncher.colors.tertiary : "#8bceff"
+            elide: Text.ElideMiddle
+            maximumLineCount: 1
+            width: Math.min(implicitWidth, delegateItem.width - 60)
           }
         }
 
+
+        // Category type badge (bottom-right)
         Rectangle {
-          anchors.bottom: parent.bottom; anchors.bottomMargin: 8
-          anchors.right: parent.right; anchors.rightMargin: appLauncher.skewOffset+8
-          width: catBadgeText.width+8; height: 16; radius: 4; z: 10
-          color: Qt.rgba(0,0,0,0.75)
-          border.width: 1; border.color: Qt.rgba(0.38,0.45,0.64,0.4)
+          anchors.bottom: parent.bottom
+          anchors.bottomMargin: 8
+          anchors.right: parent.right
+          anchors.rightMargin: appLauncher.skewOffset + 8
+          width: typeBadgeText.width + 8
+          height: 16
+          radius: 4
+          color: Qt.rgba(0, 0, 0, 0.75)
+          border.width: 1
+          border.color: appLauncher.colors ? Qt.rgba(appLauncher.colors.primary.r, appLauncher.colors.primary.g, appLauncher.colors.primary.b, 0.4) : Qt.rgba(1, 1, 1, 0.2)
+          z: 10
+
           Text {
-            id: catBadgeText; anchors.centerIn: parent
-            text: appLauncher.categoryBadge(model.categories)
-            font.family: appLauncher.fnt; font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 0.5
-            color: appLauncher.clrTertiary
+            id: typeBadgeText
+            anchors.centerIn: parent
+            text: model.source === "steam" ? "STEAM"
+              : model.categories.indexOf("Game") !== -1 ? "GAME"
+              : model.categories.indexOf("Development") !== -1 ? "DEV"
+              : model.categories.indexOf("Graphics") !== -1 ? "GFX"
+              : (model.categories.indexOf("AudioVideo") !== -1 || model.categories.indexOf("Audio") !== -1 || model.categories.indexOf("Video") !== -1) ? "MEDIA"
+              : model.categories.indexOf("Network") !== -1 ? "NET"
+              : model.categories.indexOf("Office") !== -1 ? "OFFICE"
+              : model.categories.indexOf("System") !== -1 ? "SYS"
+              : model.categories.indexOf("Settings") !== -1 ? "CFG"
+              : model.categories.indexOf("Utility") !== -1 ? "UTIL"
+              : "APP"
+            font.family: Style.fontFamily
+            font.pixelSize: 9
+            font.weight: Font.Bold
+            font.letterSpacing: 0.5
+            color: appLauncher.colors ? appLauncher.colors.tertiary : "#8bceff"
           }
         }
 
+
+        // Mouse interaction (hover selects, click launches)
         MouseArea {
-          id: itemMouseArea; anchors.fill: parent; hoverEnabled: true
-          acceptedButtons: Qt.LeftButton; cursorShape: Qt.PointingHandCursor
+          id: itemMouseArea
+          anchors.fill: parent
+          hoverEnabled: true
+          acceptedButtons: Qt.LeftButton
+          cursorShape: Qt.PointingHandCursor
           onPositionChanged: function(mouse) {
-            // Keep keyboard opening deterministic: hover no longer changes selection.
-            // Selection still changes via arrows/tab, wheel, and click.
-            if (!appLauncher.hoverSelectionEnabled) return
+            var globalPos = mapToItem(sliceListView, mouse.x, mouse.y)
+            var dx = Math.abs(globalPos.x - sliceListView.lastMouseX)
+            var dy = Math.abs(globalPos.y - sliceListView.lastMouseY)
+            if (dx > 2 || dy > 2) {
+              sliceListView.lastMouseX = globalPos.x
+              sliceListView.lastMouseY = globalPos.y
+              sliceListView.keyboardNavActive = false
+              sliceListView.currentIndex = index
+            }
           }
-          onClicked: {
-            if (delegateItem.isCurrent) appLauncher.launchApp(model.exec, model.terminal, model.name)
-            else sliceListView.currentIndex = index
+          onClicked: function(mouse) {
+            if (delegateItem.isCurrent) {
+              service.launchApp(model.exec, model.terminal, model.name)
+              appLauncher.showing = false
+            } else {
+              sliceListView.currentIndex = index
+            }
+          }
+        }
+      }
+    }
+
+  }
+
+
+  // Secondary monitor overlays to capture keyboard input from any screen
+  Variants {
+    model: Quickshell.screens
+
+    PanelWindow {
+      id: secondaryLauncherPanel
+
+      property var modelData
+      property bool isMainMonitor: modelData.name === appLauncher.mainMonitor || (Quickshell.screens.length === 1)
+
+      screen: modelData
+      visible: appLauncher.showing && !isMainMonitor
+      color: "transparent"
+
+      anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+      }
+
+      WlrLayershell.namespace: "app-launcher-parallel-secondary"
+      WlrLayershell.layer: WlrLayer.Overlay
+      WlrLayershell.keyboardFocus: (appLauncher.showing && !isMainMonitor) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+      exclusionMode: ExclusionMode.Ignore
+
+      Rectangle {
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.5)
+        opacity: appLauncher.cardVisible ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 300 } }
+      }
+
+      MouseArea {
+        anchors.fill: parent
+        onClicked: appLauncher.showing = false
+      }
+
+      FocusScope {
+        anchors.fill: parent
+        focus: appLauncher.showing && !isMainMonitor
+
+        Keys.onPressed: event => {
+          if (event.key === Qt.Key_Escape) {
+            appLauncher.showing = false
+            event.accepted = true
+            return
+          }
+          if (event.text && event.text.length > 0 && !event.modifiers) {
+            var c = event.text.charCodeAt(0)
+            if (c >= 32 && c < 127) {
+              service.searchText += event.text
+              event.accepted = true
+              return
+            }
+          }
+          if (event.key === Qt.Key_Backspace) {
+            if (service.searchText.length > 0) {
+              service.searchText = service.searchText.slice(0, -1)
+            }
+            event.accepted = true
+            return
+          }
+          if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            if (sliceListView.currentIndex >= 0 && sliceListView.currentIndex < service.filteredModel.count) {
+              var app = service.filteredModel.get(sliceListView.currentIndex)
+              service.launchApp(app.exec, app.terminal, app.name)
+              appLauncher.showing = false
+            }
+            event.accepted = true
+            return
+          }
+          if (event.key === Qt.Key_Left) {
+            if (sliceListView.currentIndex > 0) sliceListView.currentIndex--
+            event.accepted = true
+            return
+          }
+          if (event.key === Qt.Key_Right) {
+            if (sliceListView.currentIndex < service.filteredModel.count - 1) sliceListView.currentIndex++
+            event.accepted = true
+            return
           }
         }
       }

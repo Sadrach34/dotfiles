@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+
+import argparse
+import json
+import os
+import sys
+
+def find_mdi_font():
+    candidates = [
+        "/usr/share/fonts/TTF/MaterialDesignIconsDesktop.ttf",
+        "/usr/share/fonts/truetype/materialdesignicons-desktop/MaterialDesignIconsDesktop.ttf",
+        os.path.expanduser("~/.local/share/fonts/MaterialDesignIconsDesktop.ttf"),
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            return path
+    return None
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate MDI icon cache")
+    parser.add_argument("--font", help="Path to MaterialDesignIconsDesktop.ttf")
+    parser.add_argument("--output", help="Output JSON path (default: <config>/data/mdi-icons.json)")
+    args = parser.parse_args()
+
+    font_path = args.font or find_mdi_font()
+    if not font_path or not os.path.isfile(font_path):
+        print("Error: Could not find MaterialDesignIconsDesktop.ttf", file=sys.stderr)
+        print("Install it or provide --font path", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        from fontTools.ttLib import TTFont
+    except ImportError:
+        print("Error: fonttools not installed. Run: pip install fonttools", file=sys.stderr)
+        sys.exit(1)
+
+    output_path = args.output
+    if not output_path:
+        config_dir = os.environ.get("SKWD_CONFIG") or os.path.join(
+            os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "skwd"
+        )
+        output_path = os.path.join(config_dir, "data", "mdi-icons.json")
+
+    font = TTFont(font_path)
+    cmap = font.getBestCmap()
+    pua = sorted([c for c in cmap.keys() if c >= 0xF0001])
+
+    entries = []
+    for cp in pua:
+        glyph_name = cmap[cp]
+        name = glyph_name.replace("_", " ").replace("-", " ")
+        entries.append({"n": name, "g": chr(cp)})
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(entries, f, ensure_ascii=False)
+
+    print(f"Generated {len(entries)} icons -> {output_path}")
+
+if __name__ == "__main__":
+    main()

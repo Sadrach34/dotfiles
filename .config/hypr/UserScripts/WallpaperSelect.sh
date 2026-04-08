@@ -231,16 +231,6 @@ main() {
     apply_image_wallpaper "$selected_file"
   fi
 
-  # Reiniciar temporizador de WallpaperAutoChangeMixed si está corriendo
-  local AUTO_PIDFILE="/tmp/wallpaper_auto_change_mixed.pid"
-  if [[ -f "$AUTO_PIDFILE" ]]; then
-    local AUTO_PID
-    AUTO_PID=$(cat "$AUTO_PIDFILE")
-    if kill -0 "$AUTO_PID" 2>/dev/null; then
-      kill -USR2 "$AUTO_PID" 2>/dev/null
-      echo "🔄 Temporizador de auto-cambio reiniciado"
-    fi
-  fi
 }
 
 # Check if rofi is already running

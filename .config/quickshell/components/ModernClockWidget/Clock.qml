@@ -29,6 +29,12 @@ ShellRoot {
 
         // Auto-contrast: white by default, switch to black on bright wallpapers.
         property color clockTextColor: "#ffffff"
+        Behavior on clockTextColor {
+            ColorAnimation {
+                duration: 220
+                easing.type: Easing.OutCubic
+            }
+        }
         property string wallpaperPath: ""
         readonly property real brightThreshold: 0.5
         property var wallpaperPositions: ({})
@@ -43,7 +49,10 @@ ShellRoot {
         property real timeFontSize: 17
         property string forcedTextColor: ""
         property int moveAnimMs: 320
+        property string pendingWeId: ""
+        property string pendingWeProjectRaw: ""
         readonly property string positionsFilePath: Quickshell.env("HOME") + "/.config/quickshell/components/ModernClockWidget/positions.json"
+        readonly property string skwdStateFilePath: Quickshell.env("HOME") + "/.cache/skwd-wall/last-wallpaper.json"
 
         function shellQuote(s) {
             return "'" + String(s).replace(/'/g, "'\"'\"'") + "'"
@@ -59,6 +68,39 @@ ShellRoot {
             loadPositionsProc.running = true
         }
 
+        function resolveCurrentWallpaper() {
+            var raw = stateFile.text().trim()
+            if (raw) {
+                try {
+                    var state = JSON.parse(raw)
+                    if (state.type === "static" && state.path) {
+                        updateContrastFromPath(state.path)
+                        return
+                    }
+                    if (state.type === "video" && state.path) {
+                        // Videos do not have stable brightness sampling from source.
+                        // Keep color/position in sync using the selected file path.
+                        updateContrastFromPath(state.path)
+                        return
+                    }
+                    if (state.type === "we" && state.we_id) {
+                        pendingWeId = String(state.we_id)
+                        pendingWeProjectRaw = ""
+                        resolveWeProjectProc.command = [
+                            "cat",
+                            Quickshell.env("HOME") + "/.local/share/Steam/steamapps/workshop/content/431960/" + pendingWeId + "/project.json"
+                        ]
+                        resolveWeProjectProc.running = false
+                        resolveWeProjectProc.running = true
+                        return
+                    }
+                } catch (e) {
+                }
+            }
+            resolveWallpaperProc.running = false
+            resolveWallpaperProc.running = true
+        }
+
         function basename(path) {
             var p = String(path || "")
             var parts = p.split("/")
@@ -66,7 +108,7 @@ ShellRoot {
         }
 
         function stripExt(name) {
-            return String(name || "").replace(/\.[^/.]+$/, "")
+            return String(name || "").replace(/\.(jpg|jpeg|png|webp|gif|mp4|mkv|mov|webm|avi)$/i, "")
         }
 
         function positiveNumberOr(value, fallback) {
@@ -85,7 +127,11 @@ ShellRoot {
             var full = String(path || "")
             var file = basename(full)
             var stem = stripExt(file)
-            var cfg = wallpaperPositions[full] || wallpaperPositions[file] || wallpaperPositions[stem] || wallpaperPositions.default || null
+            // Prefer standardized stem keys so legacy filename.ext entries do not override custom positions.
+            var cfg = wallpaperPositions[stem] || wallpaperPositions[file] || wallpaperPositions[full] || wallpaperPositions.default || null
+            var matchedKey = wallpaperPositions[stem] ? stem
+                : (wallpaperPositions[file] ? file
+                : (wallpaperPositions[full] ? full : "default"))
             var defaultCfg = wallpaperPositions.default && typeof wallpaperPositions.default === "object"
                 ? wallpaperPositions.default
                 : ({})
@@ -108,6 +154,8 @@ ShellRoot {
             centerY = centerOnScreen || ((cfg && cfg.centerY !== undefined)
                 ? cfg.centerY === true
                 : defaultCfg.centerY === true)
+            console.log("Clock position resolve:", full, "->", matchedKey,
+                        "centerOnScreen=", centerOnScreen, "centerX=", centerX, "centerY=", centerY)
 
             if (!cfg || typeof cfg !== "object") {
                 customPosX = 0
@@ -129,6 +177,9 @@ ShellRoot {
                 customPosY = 0
                 useCustomPosition = true
             }
+            console.log("Clock position final:", matchedKey,
+                        "x=", customPosX, "y=", customPosY,
+                        "enabled=", enabled)
         }
 
         function updateContrastFromPath(path) {
@@ -176,9 +227,16 @@ ShellRoot {
             }
 
             onExited: {
-                resolveWallpaperProc.running = false
-                resolveWallpaperProc.running = true
+                clockPanel.resolveCurrentWallpaper()
             }
+        }
+
+        FileView {
+            id: stateFile
+            path: clockPanel.skwdStateFilePath
+            watchChanges: true
+            onLoaded: clockPanel.resolveCurrentWallpaper()
+            onFileChanged: stateFile.reload()
         }
 
         Process {
@@ -196,6 +254,32 @@ ShellRoot {
                 if (code !== 0) {
                     clockPanel.clockTextColor = "#ffffff"
                 }
+            }
+        }
+
+        Process {
+            id: resolveWeProjectProc
+            command: ["true"]
+
+            stdout: StdioCollector {
+                waitForEnd: true
+                onStreamFinished: {
+                    clockPanel.pendingWeProjectRaw = text.trim()
+                }
+            }
+
+            onExited: {
+                var key = clockPanel.pendingWeId
+                var raw = clockPanel.pendingWeProjectRaw
+                if (raw) {
+                    try {
+                        var p = JSON.parse(raw)
+                        if (p && p.title)
+                            key = String(p.title)
+                    } catch (e) {
+                    }
+                }
+                clockPanel.updateContrastFromPath(key)
             }
         }
 

@@ -1,0 +1,110 @@
+{
+  "compositor": "hyprland",
+  "monitor": "",
+  "paths": {
+    "wallpaper": "/home/sadrach/Pictures/wallpapers",
+    "videoWallpaper": "~/Pictures/wallpapers",
+    "cache": "~/.cache/skwd-wall",
+    "templates": "~/.config/quickshell/components/skwd-wall/data/matugen/templates",
+    "scripts": "~/.config/quickshell/components/skwd-wall/data/scripts",
+    "steam": "/home/sadrach/.local/share/Steam",
+    "steamWorkshop": "/home/sadrach/.local/share/Steam/steamapps/workshop/content/431960",
+    "steamWeAssets": "/home/sadrach/.local/share/Steam/steamapps/common/wallpaper_engine/assets"
+  },
+  "features": {
+    "matugen": true,
+    "ollama": false,
+    "steam": true,
+    "wallhaven": true,
+    "videoPreview": true
+  },
+  "colorSource": "magick",
+  "wallpaperTransition": {
+    "type": "grow",
+    "fps": 90,
+    "duration": 0.9,
+    "angle": 30,
+    "bezier": ".22,1,.36,1",
+    "pos": "0.5,0.5"
+  },
+  "ollama": {
+    "url": "http://localhost:11434",
+    "model": "gemma3:4b"
+  },
+  "steam": {
+    "apiKey": "",
+    "username": "Sadrach34"
+  },
+  "wallhaven": {
+    "apiKey": ""
+  },
+  "components": {
+    "wallpaperSelector": {
+      "displayMode": "slices",
+      "showColorDots": false,
+      "sliceSpacing": -30,
+      "hexScrollStep": 1,
+      "customPresets": {
+        "C1_slices": {
+          "expandedWidth": 924,
+          "sliceHeight": 520,
+          "sliceWidth": 135,
+          "visibleCount": 12,
+          "sliceSpacing": -30,
+          "skewOffset": 35
+        },
+        "C2_slices": {
+          "expandedWidth": 924,
+          "sliceHeight": 520,
+          "sliceWidth": 135,
+          "visibleCount": 12,
+          "sliceSpacing": -30,
+          "skewOffset": 35
+        },
+        "C3_slices": {
+          "expandedWidth": 924,
+          "sliceHeight": 520,
+          "sliceWidth": 135,
+          "visibleCount": 12,
+          "sliceSpacing": -30,
+          "skewOffset": 35
+        },
+        "C4_slices": {
+          "expandedWidth": 924,
+          "sliceHeight": 520,
+          "sliceWidth": 135,
+          "visibleCount": 12,
+          "sliceSpacing": -30,
+          "skewOffset": 35
+        }
+      },
+      "expandedWidth": 924,
+      "sliceHeight": 520,
+      "sliceWidth": 135,
+      "visibleCount": 12,
+      "skewOffset": 35,
+      "hexArc": true,
+      "hexArcIntensity": 1.2,
+      "hexCols": 7,
+      "hexRows": 2,
+      "activeCustomPreset": "C1_slices",
+      "autoChangeMode": "random",
+      "autoChangeIntervalMinutes": 20,
+      "autoChangeEnabled": true,
+      "filterBarBgColor": "#000000"
+    }
+  },
+  "wallpaperMute": true,
+  "performance": {
+    "imageOptimizePreset": "quality",
+    "imageOptimizeResolution": "1080p",
+    "videoConvertPreset": "balanced",
+    "videoConvertResolution": "2k",
+    "autoOptimizeImages": true,
+    "autoConvertVideos": false,
+    "imageTrashDays": 7,
+    "videoTrashDays": 7,
+    "autoDeleteImageTrash": false,
+    "autoDeleteVideoTrash": false
+  }
+}

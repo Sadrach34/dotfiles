@@ -1,0 +1,975 @@
+import Quickshell.Io
+import QtQuick
+import QtQuick.Controls
+import ".."
+import "../services"
+
+Item {
+  id: browser
+
+  property var colors
+  property var whService
+  property bool browserVisible: false
+
+  signal escapePressed()
+
+  property var _previewWp: null
+  property bool _previewOpen: _previewWp !== null
+
+  property string _pendingApplyId: ""
+    readonly property string _customBgRaw: (Config.wallpaperFilterBarBgColor || "").trim()
+    readonly property bool _hasCustomBg: _customBgRaw.length > 0
+    readonly property color _customBgColor: _hasCustomBg ? _customBgRaw : "transparent"
+    readonly property real _customLuma: (_customBgColor.r * 0.2126) + (_customBgColor.g * 0.7152) + (_customBgColor.b * 0.0722)
+    readonly property real _customAlpha: _customBgColor.a > 0 ? _customBgColor.a : 1.0
+    readonly property color _chipBg: _hasCustomBg
+      ? Qt.rgba(_customBgColor.r, _customBgColor.g, _customBgColor.b, Math.max(_customAlpha, 0.82))
+      : (browser.colors ? Qt.rgba(browser.colors.surface.r, browser.colors.surface.g, browser.colors.surface.b, 0.8) : Qt.rgba(0.15, 0.17, 0.22, 0.8))
+    readonly property color _chipBorderFocus: _hasCustomBg
+      ? (_customLuma < 0.45 ? Qt.lighter(_customBgColor, 1.6) : Qt.darker(_customBgColor, 1.7))
+      : (browser.colors ? browser.colors.primary : Style.fallbackAccent)
+
+  clip: !_previewOpen
+
+  visible: browserVisible
+  opacity: browserVisible ? 1 : 0
+  Behavior on opacity { NumberAnimation { duration: Style.animNormal; easing.type: Easing.OutCubic } }
+
+  height: browserVisible ? implicitHeight : 0
+  Behavior on height { NumberAnimation { duration: Style.animEnter; easing.type: Easing.OutCubic } }
+
+  readonly property real _gridCellW: Config.wallhavenThumbWidth + 8
+  readonly property real _gridCellH: Config.wallhavenThumbHeight + 8
+  readonly property real _gridTotalW: _gridCellW * Config.wallhavenColumns
+  implicitHeight: contentCol.implicitHeight + 22 + _gridCellH * Config.wallhavenRows
+
+  MouseArea { anchors.fill: parent }
+
+  Column {
+    id: contentCol
+    width: browser._gridTotalW
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.top: parent.top
+    anchors.topMargin: 12
+    spacing: 8
+
+    Row {
+      spacing: -6
+      anchors.horizontalCenter: parent.horizontalCenter
+
+      FilterButton {
+        colors: browser.colors; icon: "󰅁"; skew: 8
+        tooltip: "Back to wallpapers"
+        onClicked: browser.escapePressed()
+      }
+
+      Item { width: 14; height: 1 }
+
+      Rectangle {
+        width: 200; height: 24; radius: 0
+        color: browser._chipBg
+        border.width: searchInput.activeFocus ? 2 : 1
+        border.color: searchInput.activeFocus
+          ? browser._chipBorderFocus
+            : (browser.colors ? Qt.rgba(browser.colors.primary.r, browser.colors.primary.g, browser.colors.primary.b, 0.2) : Qt.rgba(1, 1, 1, 0.12))
+        transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -0.15, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
+
+        TextInput {
+          id: searchInput
+          anchors.fill: parent; anchors.margins: 6
+          font.family: Style.fontFamily; font.pixelSize: 11
+          color: browser.colors ? browser.colors.surfaceText : "#e0e0e0"
+          clip: true
+          Keys.onReturnPressed: { browser.whService.query = text; browser.whService.search(1) }
+          Keys.onEscapePressed: browser.escapePressed()
+        }
+        Text {
+          anchors.fill: parent; anchors.margins: 6
+          font.family: Style.fontFamily; font.pixelSize: 11
+          color: browser.colors ? Qt.rgba(browser.colors.surfaceText.r, browser.colors.surfaceText.g, browser.colors.surfaceText.b, 0.35)
+                                : Qt.rgba(1, 1, 1, 0.3)
+          text: "SEARCH WALLHAVEN..."
+          font.letterSpacing: 0.5; font.weight: Font.Medium
+          visible: !searchInput.text && !searchInput.activeFocus
+        }
+      }
+
+      Item { width: 14; height: 1 }
+
+      Repeater {
+        model: [
+          { label: "General", bit: 0 },
+          { label: "Anime",   bit: 1 },
+          { label: "People",  bit: 2 }
+        ]
+        FilterButton {
+          colors: browser.colors; label: modelData.label; skew: 8
+          isActive: browser.whService ? browser.whService.categories.charAt(modelData.bit) === "1" : false
+          onClicked: {
+            var c = browser.whService.categories.split("")
+            c[modelData.bit] = c[modelData.bit] === "1" ? "0" : "1"
+            if (c.join("") === "000") return
+            browser.whService.categories = c.join("")
+            browser.whService.search(1)
+          }
+        }
+      }
+
+      Item { width: 8; height: 1 }
+
+      Repeater {
+        model: [
+          { key: "toplist",    label: "Top" },
+          { key: "date_added", label: "New" },
+          { key: "views",      label: "Views" },
+          { key: "random",     label: "Random" }
+        ]
+        FilterButton {
+          colors: browser.colors; label: modelData.label; skew: 8
+          isActive: browser.whService ? browser.whService.sorting === modelData.key : false
+          onClicked: { browser.whService.sorting = modelData.key; browser.whService.search(1) }
+        }
+      }
+
+      Item { width: 8; height: 1 }
+
+      Repeater {
+        model: browser.whService && browser.whService.sorting === "toplist" ? [
+          { key: "1d", label: "Day" },
+          { key: "1w", label: "Week" },
+          { key: "1M", label: "Month" },
+          { key: "3M", label: "3M" },
+          { key: "6M", label: "6M" },
+          { key: "1y", label: "Year" }
+        ] : []
+        FilterButton {
+          colors: browser.colors; label: modelData.label; skew: 8
+          isActive: browser.whService ? browser.whService.topRange === modelData.key : false
+          onClicked: { browser.whService.topRange = modelData.key; browser.whService.search(1) }
+        }
+      }
+
+      Item { width: 8; height: 1 }
+
+      Text {
+        visible: browser.whService ? browser.whService.loading : false
+        text: "󰔟"
+        font.family: Style.fontFamilyNerdIcons; font.pixelSize: 16
+        color: browser.colors ? browser.colors.primary : Style.fallbackAccent
+        anchors.verticalCenter: parent.verticalCenter
+        RotationAnimation on rotation { from: 0; to: 360; duration: Style.animSpin; loops: Animation.Infinite; running: parent.visible }
+      }
+    }
+
+    Row {
+      spacing: -6
+      anchors.horizontalCenter: parent.horizontalCenter
+
+      Text {
+        text: "PURITY"
+        font.family: Style.fontFamily; font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 1.2
+        color: browser.colors ? Qt.rgba(browser.colors.surfaceText.r, browser.colors.surfaceText.g, browser.colors.surfaceText.b, 0.35) : Qt.rgba(1,1,1,0.25)
+        anchors.verticalCenter: parent.verticalCenter
+      }
+
+      Item { width: 10; height: 1 }
+
+      Repeater {
+        model: [
+          { label: "SFW",     bit: 0 },
+          { label: "Sketchy", bit: 1 },
+          { label: "NSFW",    bit: 2 }
+        ]
+        FilterButton {
+          colors: browser.colors; label: modelData.label; skew: 8
+          isActive: browser.whService ? browser.whService.purity.charAt(modelData.bit) === "1" : false
+          activeColor: "#e53935"; hasActiveColor: modelData.bit === 2
+          activeOpacity: modelData.bit === 2 && (!browser.whService || !browser.whService.apiKey) && !isActive ? 0.4 : 1.0
+          tooltip: modelData.bit === 2 && (!browser.whService || !browser.whService.apiKey) ? "NSFW requires an API key" : ""
+          onClicked: {
+            var p = browser.whService.purity.split("")
+            p[modelData.bit] = p[modelData.bit] === "1" ? "0" : "1"
+            if (p.join("") === "000") return
+            browser.whService.purity = p.join("")
+            browser.whService.search(1)
+          }
+        }
+      }
+
+      Item { width: 14; height: 1 }
+
+      Text {
+        text: "MIN RES"
+        font.family: Style.fontFamily; font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 1.2
+        color: browser.colors ? Qt.rgba(browser.colors.surfaceText.r, browser.colors.surfaceText.g, browser.colors.surfaceText.b, 0.35) : Qt.rgba(1,1,1,0.25)
+        anchors.verticalCenter: parent.verticalCenter
+      }
+
+      Item { width: 10; height: 1 }
+
+      Repeater {
+        model: [
+          { label: "Any",  value: "" },
+          { label: "1080p", value: "1920x1080" },
+          { label: "2K",   value: "2560x1440" },
+          { label: "4K",   value: "3840x2160" },
+          { label: "5K",   value: "5120x2880" },
+          { label: "8K",   value: "7680x4320" }
+        ]
+        FilterButton {
+          colors: browser.colors; label: modelData.label; skew: 8
+          isActive: browser.whService ? browser.whService.atleast === modelData.value : false
+          onClicked: { browser.whService.atleast = modelData.value; browser.whService.search(1) }
+        }
+      }
+
+      Item { width: 14; height: 1 }
+
+      Text {
+        text: "RATIO"
+        font.family: Style.fontFamily; font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 1.2
+        color: browser.colors ? Qt.rgba(browser.colors.surfaceText.r, browser.colors.surfaceText.g, browser.colors.surfaceText.b, 0.35) : Qt.rgba(1,1,1,0.25)
+        anchors.verticalCenter: parent.verticalCenter
+      }
+
+      Item { width: 10; height: 1 }
+
+      Repeater {
+        model: [
+          { label: "Any",  value: "" },
+          { label: "16:9", value: "16x9" },
+          { label: "16:10", value: "16x10" },
+          { label: "21:9", value: "21x9" },
+          { label: "32:9", value: "32x9" },
+          { label: "4:3",  value: "4x3" }
+        ]
+        FilterButton {
+          colors: browser.colors; label: modelData.label; skew: 8
+          isActive: browser.whService ? browser.whService.ratios === modelData.value : false
+          onClicked: { browser.whService.ratios = modelData.value; browser.whService.search(1) }
+        }
+      }
+    }
+
+    Text {
+      visible: browser.whService && browser.whService.errorText !== ""
+      text: browser.whService ? browser.whService.errorText : ""
+      font.family: Style.fontFamily; font.pixelSize: 11
+      color: "#ff6b6b"
+      width: parent.width
+      wrapMode: Text.Wrap
+    }
+  }
+
+  ListModel { id: resultsModel }
+
+  Connections {
+    target: browser.whService
+    function onResultsUpdated() {
+      var total = browser.whService ? browser.whService.results.length : 0
+      if (total < resultsModel.count) {
+        resultsModel.clear()
+      }
+      var toAdd = total - resultsModel.count
+      if (toAdd > 0) {
+        var batch = []
+        for (var i = 0; i < toAdd; i++)
+          batch.push({ idx: resultsModel.count + i })
+        resultsModel.append(batch)
+      }
+    }
+  }
+
+  GridView {
+    id: resultsGrid
+    anchors.top: contentCol.bottom; anchors.topMargin: 10
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.bottom: parent.bottom
+    anchors.bottomMargin: 12
+    width: browser._gridTotalW
+    clip: true
+    cellWidth: browser._gridCellW
+    cellHeight: browser._gridCellH
+
+    model: resultsModel
+    cacheBuffer: 600
+    boundsBehavior: Flickable.StopAtBounds
+    interactive: false
+
+    property real _scrollTarget: 0
+    onContentYChanged: {
+      if (!_gridScrollAnim.running) _scrollTarget = contentY
+      if (contentY > _prevContentY) _lastScrollDir = 1
+      else if (contentY < _prevContentY) _lastScrollDir = -1
+      _prevContentY = contentY
+    }
+
+    NumberAnimation {
+      id: _gridScrollAnim
+      target: resultsGrid
+      property: "contentY"
+      duration: 400
+      easing.type: Easing.OutCubic
+    }
+
+    function _snapScroll(delta) {
+      if (!_gridScrollAnim.running) _scrollTarget = contentY
+      var step = cellHeight
+      _scrollTarget += (delta > 0 ? -step : step)
+      var maxY = contentHeight - height
+      _scrollTarget = Math.max(0, Math.min(_scrollTarget, maxY))
+      _gridScrollAnim.stop()
+      _gridScrollAnim.from = contentY
+      _gridScrollAnim.to = _scrollTarget
+      _gridScrollAnim.start()
+    }
+
+    MouseArea {
+      anchors.fill: parent
+      propagateComposedEvents: true
+      onWheel: function(wheel) {
+        resultsGrid._snapScroll(wheel.angleDelta.y)
+        resultsGrid.forceActiveFocus()
+      }
+      onPressed: function(mouse) { mouse.accepted = false }
+      onReleased: function(mouse) { mouse.accepted = false }
+      onClicked: function(mouse) { mouse.accepted = false }
+    }
+
+    property int _lastScrollDir: 1
+    property real _prevContentY: 0
+    onContentHeightChanged: _prevContentY = contentY
+
+    onCountChanged: {
+      if (atYEnd && browser.whService && browser.whService.hasMore && !browser.whService.loading)
+        browser.whService.loadMore()
+    }
+
+    onAtYEndChanged: {
+      if (atYEnd && browser.whService && browser.whService.hasMore && !browser.whService.loading) {
+        browser.whService.loadMore()
+      }
+    }
+
+    ScrollBar.vertical: ScrollBar {
+      policy: ScrollBar.AsNeeded
+      width: 4
+      contentItem: Rectangle {
+        radius: 2
+        color: browser.colors ? Qt.rgba(browser.colors.primary.r, browser.colors.primary.g, browser.colors.primary.b, 0.4)
+                              : Qt.rgba(1, 1, 1, 0.3)
+      }
+    }
+
+      delegate: Item {
+        id: thumbDelegate
+        width: resultsGrid.cellWidth
+        height: resultsGrid.cellHeight
+
+        required property int index
+        property var wp: browser.whService ? browser.whService.results[index] : null
+        property string dlStatus: {
+          if (!browser.whService || !wp) return ""
+          var s = browser.whService.downloadStatus
+          return s[wp.id] || ""
+        }
+        property real dlProgress: {
+          if (!browser.whService || !wp) return 0
+          var p = browser.whService.downloadProgress
+          return p[wp.id] || 0
+        }
+        property bool isLocal: {
+          if (!browser.whService || !wp) return false
+          var ids = browser.whService.localWallhavenIds
+          return !!ids[wp.id]
+        }
+
+        property bool _needsEntryAnim: false
+        opacity: 0
+        transform: Translate { id: thumbTranslate; y: 0 }
+
+        Component.onCompleted: {
+          if (resultsGrid._lastScrollDir >= 0) {
+            _needsEntryAnim = true
+            thumbTranslate.y = 30
+            var col = index % Config.wallhavenColumns
+            _entryDelay.interval = col * 35
+            _entryDelay.start()
+          } else {
+            opacity = 1
+          }
+        }
+
+        Timer {
+          id: _entryDelay
+          repeat: false
+          onTriggered: {
+            _opacityAnim.start()
+            _slideAnim.start()
+          }
+        }
+
+        NumberAnimation {
+          id: _opacityAnim
+          target: thumbDelegate; property: "opacity"
+          from: 0; to: 1; duration: Style.animEnter
+          easing.type: Easing.OutCubic
+        }
+
+        NumberAnimation {
+          id: _slideAnim
+          target: thumbTranslate; property: "y"
+          from: 30; to: 0; duration: Style.animExpand
+          easing.type: Easing.OutBack
+        }
+
+        Rectangle {
+          anchors.fill: parent; anchors.margins: 4; radius: 6
+          color: "transparent"
+          border.width: resultsGrid.currentIndex === thumbDelegate.index ? 2 : 0
+          border.color: browser.colors ? browser.colors.primary : "#ff8800"
+          Behavior on border.width { NumberAnimation { duration: Style.animFast; easing.type: Easing.OutQuad } }
+
+          Rectangle {
+            anchors.fill: parent; anchors.margins: parent.border.width; radius: 5
+            color: browser.colors ? Qt.rgba(browser.colors.surface.r, browser.colors.surface.g, browser.colors.surface.b, 0.6)
+                                  : Qt.rgba(0.12, 0.14, 0.18, 0.6)
+            clip: true
+
+          Image {
+            id: thumbImg
+            anchors.fill: parent
+            source: thumbDelegate.wp ? thumbDelegate.wp.thumbLarge : ""
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            smooth: true
+            cache: false
+            sourceSize.width: Config.wallhavenThumbWidth
+            sourceSize.height: Config.wallhavenThumbHeight
+          }
+
+          Rectangle {
+            id: skeleton
+            anchors.fill: parent; radius: 6
+            visible: thumbImg.status !== Image.Ready
+            color: browser.colors ? Qt.rgba(browser.colors.surfaceVariant.r, browser.colors.surfaceVariant.g, browser.colors.surfaceVariant.b, 0.5)
+                                  : Qt.rgba(0.18, 0.20, 0.25, 0.8)
+
+            Rectangle {
+              id: shimmer
+              width: parent.width * 0.5
+              height: parent.height
+              radius: 6
+              opacity: 0.35
+              gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: "transparent" }
+                GradientStop { position: 0.5; color: browser.colors ? Qt.rgba(browser.colors.primary.r, browser.colors.primary.g, browser.colors.primary.b, 0.15) : Qt.rgba(1, 1, 1, 0.08) }
+                GradientStop { position: 1.0; color: "transparent" }
+              }
+              NumberAnimation on x {
+                from: -shimmer.width
+                to: skeleton.width
+                duration: 1200
+                loops: Animation.Infinite
+                running: skeleton.visible
+              }
+            }
+
+            Text {
+              anchors.centerIn: parent
+              text: "\u{f0553}"
+              font.family: Style.fontFamilyNerdIcons; font.pixelSize: 22
+              color: browser.colors ? Qt.rgba(browser.colors.surfaceText.r, browser.colors.surfaceText.g, browser.colors.surfaceText.b, 0.15) : Qt.rgba(1,1,1,0.1)
+            }
+          }
+
+          Rectangle {
+            id: hoverOverlay
+            anchors.fill: parent; radius: 6
+            color: Qt.rgba(0, 0, 0, 0.55)
+            opacity: thumbMouse.containsMouse ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Style.animFast } }
+
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: browser._previewWp = thumbDelegate.wp
+            }
+
+            Column {
+              anchors.centerIn: parent
+              spacing: 4
+
+              Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: thumbDelegate.wp ? thumbDelegate.wp.resolution : ""
+                font.family: Style.fontFamily; font.pixelSize: 10
+                color: "#cccccc"
+              }
+
+              Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: -3
+                visible: thumbDelegate.dlStatus !== "downloading"
+
+                ActionButton {
+                  colors: browser.colors
+                  icon: (thumbDelegate.dlStatus === "done" || thumbDelegate.isLocal) ? "\u{f012c}" : (thumbDelegate.dlStatus === "error" ? "\u{f0159}" : "\u{f01da}")
+                  label: (thumbDelegate.dlStatus === "done" || thumbDelegate.isLocal) ? "Saved" : (thumbDelegate.dlStatus === "error" ? "Error" : "Save")
+                  tooltip: "Download to wallpaper folder"
+                  onClicked: {
+                    if (thumbDelegate.dlStatus === "done" || thumbDelegate.isLocal || !thumbDelegate.wp) return
+                    browser.whService.downloadWallpaper(thumbDelegate.wp.id, thumbDelegate.wp.path)
+                  }
+                }
+
+                ActionButton {
+                  colors: browser.colors
+                  icon: "\u{f0e56}"; label: "Apply"
+                  tooltip: "Download and set as wallpaper"
+                  visible: thumbDelegate.dlStatus !== "done" && !thumbDelegate.isLocal
+                  onClicked: {
+                    if (!thumbDelegate.wp || thumbDelegate.dlStatus === "downloading") return
+                    browser._pendingApplyId = thumbDelegate.wp.id
+                    browser.whService.downloadWallpaper(thumbDelegate.wp.id, thumbDelegate.wp.path)
+                  }
+                }
+
+                ActionButton {
+                  colors: browser.colors
+                  icon: "\u{f0e56}"; label: "Apply"
+                  tooltip: "Set as wallpaper"
+                  visible: thumbDelegate.dlStatus === "done" || thumbDelegate.isLocal
+                  onClicked: {
+                    if (!thumbDelegate.wp) return
+                    browser._applyLocalWallhaven(thumbDelegate.wp.id)
+                  }
+                }
+
+                ActionButton {
+                  colors: browser.colors
+                  icon: "\u{f01b4}"; label: "Delete"
+                  danger: true
+                  tooltip: "Delete from wallpaper folder"
+                  visible: thumbDelegate.dlStatus === "done" || thumbDelegate.isLocal
+                  onClicked: {
+                    if (!thumbDelegate.wp) return
+                    browser._deleteWallhaven(thumbDelegate.wp.id)
+                  }
+                }
+              }
+
+              Text {
+                visible: thumbDelegate.dlStatus === "downloading"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Downloading..."
+                font.family: Style.fontFamily; font.pixelSize: 11
+                color: browser.colors ? browser.colors.primary : Style.fallbackAccent
+              }
+
+              Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: thumbDelegate.wp ? _formatSize(thumbDelegate.wp.fileSize) : ""
+                font.family: Style.fontFamily; font.pixelSize: 9
+                color: "#999"
+              }
+            }
+          }
+
+          Row {
+            anchors.bottom: parent.bottom; anchors.left: parent.left
+            anchors.margins: 4; spacing: 3
+
+            Rectangle {
+              width: catBadge.implicitWidth + 6; height: 14; radius: 3
+              color: Qt.rgba(0, 0, 0, 0.6)
+              Text {
+                id: catBadge; anchors.centerIn: parent
+                text: thumbDelegate.wp ? thumbDelegate.wp.category : ""
+                font.family: Style.fontFamily; font.pixelSize: 8
+                color: "#ccc"
+              }
+            }
+          }
+
+          Rectangle {
+            visible: thumbDelegate.isLocal || thumbDelegate.dlStatus === "done"
+            anchors.top: parent.top; anchors.left: parent.left
+            anchors.margins: 4
+            width: dlBadgeRow.implicitWidth + 8; height: 16; radius: 4
+            color: browser.colors ? Qt.rgba(browser.colors.primary.r, browser.colors.primary.g, browser.colors.primary.b, 0.85)
+                                  : Qt.rgba(0.3, 0.76, 0.97, 0.85)
+            Row {
+              id: dlBadgeRow; anchors.centerIn: parent; spacing: 3
+              Text {
+                text: "\u{f012c}"; font.family: Style.fontFamilyNerdIcons; font.pixelSize: 10
+                color: browser.colors ? browser.colors.primaryText : "#000"
+              }
+              Text {
+                text: "Saved"; font.family: Style.fontFamily; font.pixelSize: 8; font.weight: Font.Medium
+                color: browser.colors ? browser.colors.primaryText : "#000"
+              }
+            }
+          }
+
+          Rectangle {
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 3
+            color: "transparent"
+            visible: thumbDelegate.dlStatus === "downloading"
+            Rectangle {
+              anchors.left: parent.left
+              anchors.top: parent.top
+              anchors.bottom: parent.bottom
+              width: parent.width * thumbDelegate.dlProgress
+              radius: 2
+              color: browser.colors ? browser.colors.primary : Style.fallbackAccent
+              Behavior on width { NumberAnimation { duration: Style.animNormal; easing.type: Easing.OutCubic } }
+            }
+          }
+
+          MouseArea {
+            id: thumbMouse; anchors.fill: parent; hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            propagateComposedEvents: true
+            onContainsMouseChanged: {
+              if (containsMouse) resultsGrid.currentIndex = thumbDelegate.index
+            }
+            onPressed: function(mouse) { mouse.accepted = false }
+          }
+          }
+        }
+      }
+  }
+
+  Text {
+    visible: browser.whService && !browser.whService.loading && resultsModel.count === 0 && browser.whService.errorText === ""
+    text: "Search wallhaven.cc for wallpapers, or browse the top list"
+    font.family: Style.fontFamily; font.pixelSize: 12
+    color: browser.colors ? Qt.rgba(browser.colors.surfaceText.r, browser.colors.surfaceText.g, browser.colors.surfaceText.b, 0.4)
+                          : Qt.rgba(1, 1, 1, 0.3)
+    anchors.centerIn: resultsGrid
+  }
+
+  onBrowserVisibleChanged: {
+    if (browserVisible && whService && resultsModel.count === 0) {
+      searchInput.forceActiveFocus()
+      whService.search(1)
+    } else if (browserVisible) {
+      searchInput.forceActiveFocus()
+      whService.scanLocalFiles()
+    } else {
+      if (whService) whService.clearCache()
+      resultsModel.clear()
+      _previewWp = null
+    }
+  }
+  Item {
+    anchors.fill: resultsGrid
+    visible: browser.whService && browser.whService.loading
+
+    enabled: false
+
+    Text {
+      anchors.centerIn: parent
+      text: "\u{f051f}"
+      font.family: Style.fontFamilyNerdIcons; font.pixelSize: 128
+      color: browser.colors ? browser.colors.primary : Style.fallbackAccent
+      opacity: browser.whService && browser.whService.loading ? 1 : 0
+      Behavior on opacity { NumberAnimation { duration: Style.animFast } }
+      RotationAnimation on rotation { from: 0; to: 360; duration: Style.animSpin; loops: Animation.Infinite; running: browser.whService && browser.whService.loading }
+    }
+  }
+  Rectangle {
+    id: previewOverlay
+
+    property point _rootPos: {
+      if (!browser._previewOpen) return Qt.point(0, 0)
+      var mapped = browser.mapToItem(null, 0, 0)
+      return mapped
+    }
+    property var _rootItem: {
+      var p = browser.parent
+      while (p && p.parent) p = p.parent
+      return p
+    }
+
+    x: -_rootPos.x
+    y: -_rootPos.y
+    width: _rootItem ? _rootItem.width : parent.width
+    height: _rootItem ? _rootItem.height : parent.height
+    z: 100
+    visible: opacity > 0
+    color: Qt.rgba(0, 0, 0, 0.92)
+    opacity: browser._previewOpen ? 1 : 0
+    Behavior on opacity { NumberAnimation { duration: Style.animEnter; easing.type: Easing.OutCubic } }
+
+    MouseArea {
+      anchors.fill: parent
+      acceptedButtons: Qt.LeftButton | Qt.RightButton
+      onClicked: browser._previewWp = null
+    }
+
+    Keys.onEscapePressed: browser._previewWp = null
+    focus: browser._previewOpen
+
+    Image {
+      id: previewImg
+      anchors.fill: parent
+      anchors.margins: 60
+      anchors.bottomMargin: 80
+      source: browser._previewWp ? browser._previewWp.path : ""
+      fillMode: Image.PreserveAspectFit
+      asynchronous: true
+      smooth: true; cache: false
+      sourceSize.width: previewOverlay.width
+      sourceSize.height: previewOverlay.height
+
+      scale: browser._previewOpen ? 1.0 : 0.85
+      Behavior on scale { NumberAnimation { duration: Style.animExpand; easing.type: Easing.OutBack } }
+
+      opacity: browser._previewOpen ? 1.0 : 0.0
+      Behavior on opacity { NumberAnimation { duration: Style.animEnter; easing.type: Easing.OutCubic } }
+    }
+
+    Text {
+      anchors.centerIn: parent
+      visible: previewImg.status === Image.Loading
+      text: "\u{f051f}"
+      font.family: Style.fontFamilyNerdIcons; font.pixelSize: 40
+      color: browser.colors ? browser.colors.primary : Style.fallbackAccent
+      RotationAnimation on rotation { from: 0; to: 360; duration: Style.animSpin; loops: Animation.Infinite; running: previewImg.status === Image.Loading }
+    }
+
+    Rectangle {
+      anchors.top: parent.top; anchors.right: parent.right
+      anchors.margins: 20
+      width: 40; height: 40; radius: 20
+      color: previewCloseMouse.containsMouse ? Qt.rgba(1,1,1,0.25) : Qt.rgba(1,1,1,0.1)
+      Behavior on color { ColorAnimation { duration: Style.animVeryFast } }
+
+      Text {
+        anchors.centerIn: parent
+        text: "\u{f0156}"
+        font.family: Style.fontFamilyNerdIcons; font.pixelSize: 20
+        color: "#fff"
+      }
+      MouseArea {
+        id: previewCloseMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+        onClicked: browser._previewWp = null
+      }
+      StyledToolTip { visible: previewCloseMouse.containsMouse; text: "Close preview"; delay: 400 }
+    }
+
+    Rectangle {
+      anchors.bottom: parent.bottom
+      anchors.left: parent.left; anchors.right: parent.right
+      height: 56
+      color: Qt.rgba(0, 0, 0, 0.6)
+
+      Row {
+        anchors.centerIn: parent
+        spacing: 20
+
+        Row {
+          spacing: 5; anchors.verticalCenter: parent.verticalCenter
+          Text {
+            text: "\u{f0a39}"
+            font.family: Style.fontFamilyNerdIcons; font.pixelSize: 14
+            color: browser.colors ? browser.colors.primary : Style.fallbackAccent
+            anchors.verticalCenter: parent.verticalCenter
+          }
+          Text {
+            text: browser._previewWp ? browser._previewWp.resolution : ""
+            font.family: Style.fontFamily; font.pixelSize: 13
+            color: Qt.rgba(1, 1, 1, 0.85)
+            anchors.verticalCenter: parent.verticalCenter
+          }
+        }
+
+        Row {
+          spacing: 5; anchors.verticalCenter: parent.verticalCenter
+          Text {
+            text: "\u{f0224}"
+            font.family: Style.fontFamilyNerdIcons; font.pixelSize: 14
+            color: browser.colors ? browser.colors.primary : Style.fallbackAccent
+            anchors.verticalCenter: parent.verticalCenter
+          }
+          Text {
+            text: browser._previewWp ? _formatSize(browser._previewWp.fileSize) : ""
+            font.family: Style.fontFamily; font.pixelSize: 12
+            color: Qt.rgba(1, 1, 1, 0.65)
+            anchors.verticalCenter: parent.verticalCenter
+          }
+        }
+
+        Rectangle {
+          width: catText.implicitWidth + 12; height: 24; radius: 4
+          anchors.verticalCenter: parent.verticalCenter
+          color: Qt.rgba(1, 1, 1, 0.1)
+          Text {
+            id: catText; anchors.centerIn: parent
+            text: browser._previewWp ? browser._previewWp.category : ""
+            font.family: Style.fontFamily; font.pixelSize: 11
+            color: Qt.rgba(1, 1, 1, 0.7)
+          }
+        }
+
+        Rectangle {
+          width: purText.implicitWidth + 12; height: 24; radius: 4
+          anchors.verticalCenter: parent.verticalCenter
+          color: {
+            var p = browser._previewWp ? browser._previewWp.purity : ""
+            return p === "sfw" ? Qt.rgba(0.3, 0.8, 0.3, 0.2)
+                 : p === "sketchy" ? Qt.rgba(1, 0.8, 0, 0.2)
+                 : Qt.rgba(1, 0.3, 0.3, 0.2)
+          }
+          Text {
+            id: purText; anchors.centerIn: parent
+            text: browser._previewWp ? browser._previewWp.purity : ""
+            font.family: Style.fontFamily; font.pixelSize: 11
+            color: Qt.rgba(1, 1, 1, 0.8)
+          }
+        }
+
+        Rectangle { width: 1; height: 24; color: Qt.rgba(1,1,1,0.15); anchors.verticalCenter: parent.verticalCenter }
+
+        Row {
+          anchors.verticalCenter: parent.verticalCenter
+          spacing: -3
+
+          property string _dlSt: {
+            if (!browser.whService || !browser._previewWp) return ""
+            var s = browser.whService.downloadStatus
+            return s[browser._previewWp.id] || ""
+          }
+          property bool _isLocal: {
+            if (!browser.whService || !browser._previewWp) return false
+            return !!browser.whService.localWallhavenIds[browser._previewWp.id]
+          }
+
+          ActionButton {
+            colors: browser.colors
+            icon: (parent._dlSt === "done" || parent._isLocal) ? "\u{f012c}" : (parent._dlSt === "error" ? "\u{f0159}" : "\u{f01da}")
+            label: (parent._dlSt === "done" || parent._isLocal) ? "Saved" : (parent._dlSt === "downloading" ? "Downloading..." : (parent._dlSt === "error" ? "Error" : "Download"))
+            tooltip: "Save to wallpaper folder"
+            onClicked: {
+              if (parent._dlSt === "done" || parent._isLocal || parent._dlSt === "downloading" || !browser._previewWp) return
+              browser.whService.downloadWallpaper(browser._previewWp.id, browser._previewWp.path)
+            }
+          }
+
+          ActionButton {
+            colors: browser.colors
+            icon: "\u{f0e56}"; label: "Apply"
+            tooltip: "Download and set as wallpaper"
+            visible: parent._dlSt !== "done" && !parent._isLocal
+            onClicked: {
+              if (!browser._previewWp || parent._dlSt === "downloading") return
+              browser._pendingApplyId = browser._previewWp.id
+              browser.whService.downloadWallpaper(browser._previewWp.id, browser._previewWp.path)
+            }
+          }
+
+          ActionButton {
+            colors: browser.colors
+            icon: "\u{f0e56}"; label: "Apply"
+            tooltip: "Set as wallpaper"
+            visible: parent._dlSt === "done" || parent._isLocal
+            onClicked: {
+              if (!browser._previewWp) return
+              browser._applyLocalWallhaven(browser._previewWp.id)
+            }
+          }
+
+          ActionButton {
+            colors: browser.colors
+            icon: "\u{f01b4}"; label: "Delete"
+            danger: true
+            tooltip: "Delete from wallpaper folder"
+            visible: parent._dlSt === "done" || parent._isLocal
+            onClicked: {
+              if (!browser._previewWp) return
+              browser._deleteWallhaven(browser._previewWp.id)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  Connections {
+    target: browser.whService
+    function onDownloadFinished(wallhavenId, localPath) {
+      if (wallhavenId === browser._pendingApplyId && localPath !== "") {
+        browser._pendingApplyId = ""
+        WallpaperApplyService.applyStatic(localPath)
+      }
+    }
+  }
+
+  function _applyLocalWallhaven(whId) {
+    var safeId = whId.replace(/[^a-zA-Z0-9]/g, "")
+    _applyLookupProc.command = ["find", Config.wallpaperDir, "-maxdepth", "1", "-name", "wallhaven-" + safeId + ".*", "-print", "-quit"]
+    _applyLookupProc.running = true
+  }
+
+  property string _applyLookupResult: ""
+  property var _applyLookupProc: Process {
+    stdout: SplitParser {
+      onRead: data => { browser._applyLookupResult = data.trim() }
+    }
+    onExited: {
+      if (browser._applyLookupResult !== "")
+        WallpaperApplyService.applyStatic(browser._applyLookupResult)
+      browser._applyLookupResult = ""
+    }
+  }
+
+  function _deleteWallhaven(whId) {
+    var safeId = whId.replace(/[^a-zA-Z0-9]/g, "")
+    _deleteLookupProc.command = ["find", Config.wallpaperDir, "-maxdepth", "1", "-name", "wallhaven-" + safeId + ".*", "-print", "-quit"]
+    _deleteLookupProc._whId = safeId
+    _deleteLookupProc.running = true
+  }
+
+  property var _deleteLookupProc: Process {
+    property string _whId: ""
+    property string _foundPath: ""
+    stdout: SplitParser {
+      onRead: data => { browser._deleteLookupProc._foundPath = data.trim() }
+    }
+    onExited: {
+      if (_foundPath !== "") {
+        _deleteFileProc.command = ["rm", "-f", _foundPath]
+        _deleteFileProc.running = true
+      }
+      if (_whId !== "" && browser.whService) {
+        var ids = browser.whService.localWallhavenIds
+        delete ids[_whId]
+        browser.whService.localWallhavenIds = ids
+        var st = browser.whService.downloadStatus
+        delete st[_whId]
+        browser.whService.downloadStatus = st
+      }
+      _foundPath = ""
+      _whId = ""
+    }
+  }
+
+  property var _deleteFileProc: Process {
+    onExited: {
+      if (browser.whService) browser.whService.scanLocalFiles()
+    }
+  }
+
+  function _formatSize(bytes) {
+    if (!bytes || bytes <= 0) return ""
+    if (bytes < 1024) return bytes + " B"
+    if (bytes < 1048576) return (bytes / 1024).toFixed(0) + " KB"
+    return (bytes / 1048576).toFixed(1) + " MB"
+  }
+}

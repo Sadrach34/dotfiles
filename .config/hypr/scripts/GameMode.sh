@@ -14,7 +14,6 @@ WALLPAPER="$HOME/.config/rofi/.current_wallpaper"
 
 # --- LÓGICA ---
 LOCK_FILE="/tmp/gamemode.lock"
-WALLPAPER_SCRIPT="$HOME/.config/hypr/UserScripts/WallpaperAutoChangeMixed.sh"
 WALLPAPER_DIR="$HOME/Pictures/wallpapers"
 
 if [ -f "$LOCK_FILE" ]; then
@@ -47,7 +46,7 @@ if [ -f "$LOCK_FILE" ]; then
     sleep 1
     waybar &
     
-    # Reiniciar sistema de wallpapers mixto
+    # Restaurar wallpaper actual
     # 1. Cargar wallpaper actual si existe (imagen estática)
     if [ -f "$WALLPAPER" ] && [ -s "$WALLPAPER" ]; then
         # Asegurar que swww-daemon está corriendo
@@ -58,13 +57,8 @@ if [ -f "$LOCK_FILE" ]; then
         swww img "$WALLPAPER" >/dev/null 2>&1
     fi
     
-    # 2. Reiniciar el cambio automático de wallpapers mixtos
-    if [ -f "$WALLPAPER_SCRIPT" ]; then
-        "$WALLPAPER_SCRIPT" "$WALLPAPER_DIR" >/dev/null 2>&1 &
-    fi
-    
     rm "$LOCK_FILE"
-    notify-send -u normal -i "$NOTIF_ICON" "🎮 Modo Juego: Desactivado" "Configuración visual restaurada.\n✅ Efectos reactivados\n✅ Notificaciones activas\n✅ Wallpapers automáticos reiniciados"
+    notify-send -u normal -i "$NOTIF_ICON" "🎮 Modo Juego: Desactivado" "Configuración visual restaurada.\n✅ Efectos reactivados\n✅ Notificaciones activas"
 else
     # --- ACTIVAR MODO JUEGO ---
     touch "$LOCK_FILE"
@@ -88,11 +82,6 @@ else
     # Pausar/matar notificaciones (swaync)
     pkill -STOP swaync 2>/dev/null
     
-    # Detener sistema de wallpapers automáticos (libera CPU/GPU)
-    pkill -f WallpaperAutoChangeMixed 2>/dev/null
-    pkill -f WallpaperAutoChange 2>/dev/null
-    rm -f /tmp/wallpaper_auto_change_mixed.pid 2>/dev/null
-    
     # Matar procesos de wallpaper que consumen recursos
     pkill -9 mpvpaper 2>/dev/null  # Videos animados
     swww kill 2>/dev/null          # Daemon de imágenes
@@ -100,5 +89,5 @@ else
     # Opcional: Pausar otros daemons innecesarios
     # pkill -STOP rog-control-center 2>/dev/null
     
-    notify-send -u low -i "$NOTIF_ICON" "🎮 Modo Juego: Activado" "Máximo rendimiento activado.\n⚡ Animaciones OFF\n⚡ Blur/Sombras OFF\n⚡ Notificaciones pausadas\n⚡ Wallpapers detenidos\n⚡ VRR activado"
+    notify-send -u low -i "$NOTIF_ICON" "🎮 Modo Juego: Activado" "Máximo rendimiento activado.\n⚡ Animaciones OFF\n⚡ Blur/Sombras OFF\n⚡ Notificaciones pausadas\n⚡ VRR activado"
 fi
