@@ -90,6 +90,38 @@ if [[ "$MODE" == "auto" ]]; then
   fi
 fi
 
+read_marker_value() {
+  local key="$1"
+  awk -F= -v k="$key" '$1 == k { print $2; exit }' "$MARKER_FILE" 2>/dev/null || true
+}
+
+load_previous_option_defaults() {
+  [[ "$MODE" == "update" ]] || return
+  [[ -f "$MARKER_FILE" ]] || return
+
+  local prev
+
+  if [[ "$WITH_LAPTOP" == "auto" ]]; then
+    prev="$(read_marker_value laptop)"
+    [[ "$prev" =~ ^(yes|no)$ ]] && WITH_LAPTOP="$prev"
+  fi
+
+  if [[ "$WITH_ANIMATIONS" == "auto" ]]; then
+    prev="$(read_marker_value animations)"
+    [[ "$prev" =~ ^(yes|no)$ ]] && WITH_ANIMATIONS="$prev"
+  fi
+
+  if [[ "$WITH_GAMER" == "auto" ]]; then
+    prev="$(read_marker_value gamer)"
+    [[ "$prev" =~ ^(yes|no)$ ]] && WITH_GAMER="$prev"
+  fi
+
+  if [[ "$WITH_PROGRAMMER" == "auto" ]]; then
+    prev="$(read_marker_value programmer)"
+    [[ "$prev" =~ ^(yes|no)$ ]] && WITH_PROGRAMMER="$prev"
+  fi
+}
+
 confirm_or_exit() {
   local prompt="$1"
   if $ASSUME_YES; then
@@ -248,6 +280,7 @@ install_base_packages_pacman() {
     blueman network-manager-applet \
     syncthing ufw \
     mpv vlc obs-studio easyeffects cava playerctl \
+    mpv-mpris yt-dlp libnotify socat \
     thunar thunar-archive-plugin thunar-volman xarchiver unrar \
     android-file-transfer android-tools android-udev timeshift \
     brightnessctl ddcutil xdotool ydotool wtype
@@ -263,7 +296,8 @@ install_base_packages_pacman() {
   yay_install \
     pokemon-colorscripts-git \
     bitwarden obsidian \
-    ttf-fantasque-nerd
+    ttf-fantasque-nerd \
+    ttf-material-design-icons-desktop-git
 
   ok "Paquetes base listos"
 }
@@ -862,6 +896,7 @@ main() {
   warn "Se crearan backups en $BACKUP_ROOT"
 
   confirm_or_exit "Continuar"
+  load_previous_option_defaults
   select_optional_modules
 
   local pkgm
