@@ -64,6 +64,15 @@ def we_assets_dir() -> str:
 def wifi_interface() -> str:
     return get("components.bar.wifi.interface", "wlan0")
 
+def bar_backend() -> str:
+    return get("components.bar.backend", "waybar")
+
+def waybar_config_path() -> str:
+    return expand_path(get("components.bar.waybarConfig", "~/.config/waybar/config"))
+
+def waybar_style_path() -> str:
+    return expand_path(get("components.bar.waybarStyle", "~/.config/waybar/style.css"))
+
 def matugen_scheme() -> str:
     return get("matugen.schemeType", "scheme-fidelity")
 

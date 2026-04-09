@@ -25,11 +25,18 @@ Column {
     return mode === "laptop"
   }
 
+  function _effectiveLaptopMode() {
+    var mode = panel.getNested(panel.configData, ["power", "deviceType"], "auto")
+    if (mode === "laptop") return true
+    if (mode === "desktop") return false
+    return hasBattery
+  }
+
   function _setMode(mode) {
     panel.setNested(panel.configData, ["power", "deviceType"], mode)
     panel.configDataChanged()
 
-    if (mode !== "laptop") {
+    if (!_effectiveLaptopMode()) {
       _applyProfile("performance")
     } else {
       var target = panel.getNested(panel.configData, ["power", "profile"], "balanced")
@@ -55,7 +62,7 @@ Column {
   ConfigSectionTitle { text: "POWER"; colors: root.colors }
 
   Text {
-    text: statusMessage !== "" ? statusMessage : (_isLaptopMode() ? "Modo laptop: puedes elegir ahorro, balanceado o performance" : "Modo no-laptop: se fuerza performance")
+    text: statusMessage !== "" ? statusMessage : (_effectiveLaptopMode() ? "Modo laptop/auto con batería: puedes elegir ahorro, balanceado o performance" : "Modo desktop/auto sin batería: se fuerza performance")
     font.family: Style.fontFamily
     font.pixelSize: 11
     color: colors ? Qt.rgba(colors.surfaceText.r, colors.surfaceText.g, colors.surfaceText.b, 0.8) : "#cfcfcf"
@@ -102,7 +109,7 @@ Column {
 
   Row {
     spacing: 10
-    visible: _isLaptopMode()
+    visible: _effectiveLaptopMode()
 
     Repeater {
       model: [
@@ -171,8 +178,8 @@ Column {
 
       if (!powerCtlAvailable) {
         statusMessage = "powerprofilesctl no está instalado o no responde"
-      } else if (!_isLaptopMode()) {
-        statusMessage = "Modo no especificado/desktop: performance automático"
+      } else if (!_effectiveLaptopMode()) {
+        statusMessage = "Modo desktop/auto sin batería: performance automático"
       } else {
         statusMessage = ""
       }

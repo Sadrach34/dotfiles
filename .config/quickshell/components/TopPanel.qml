@@ -18,6 +18,40 @@ import "./toppanel"
 PanelWindow {
     id: topPanel
 
+    property bool barVolumeEnabled: true
+    property bool barCalendarEnabled: true
+    property bool barMusicEnabled: true
+
+    function loadBarToggles() {
+        var txt = barConfigFile.text().trim()
+        if (!txt) return
+        try {
+            var data = JSON.parse(txt)
+            var comps = data && data.components ? data.components : {}
+            var bar = comps && comps.bar ? comps.bar : {}
+            var music = bar && bar.music ? bar.music : {}
+
+            barVolumeEnabled = !(bar && bar.volume === false)
+            barCalendarEnabled = !(bar && bar.calendar === false)
+            barMusicEnabled = !(music && music.enabled === false)
+        } catch (e) {
+            console.log("TopPanel: failed to parse config.json:", e)
+        }
+    }
+
+    FileView {
+        id: barConfigFile
+        path: Quickshell.env("HOME") + "/.config/quickshell/data/config.json"
+        preload: true
+        watchChanges: true
+        onFileChanged: {
+            barConfigFile.reload()
+            topPanel.loadBarToggles()
+        }
+    }
+
+    Component.onCompleted: topPanel.loadBarToggles()
+
     anchors { top: true; left: true; right: true }
     implicitHeight: 500
     color: "transparent"
@@ -238,11 +272,18 @@ PanelWindow {
 
                         // ── Col 1: reproductor de música (216px) ──────────────
                         FullPlayer {
-                            Layout.preferredWidth: 216
+                            Layout.preferredWidth: topPanel.barMusicEnabled ? 216 : 0
                             Layout.fillHeight: true
+                            visible: topPanel.barMusicEnabled
+                            enabled: topPanel.barMusicEnabled
                         }
 
-                        Rectangle { width: 1; Layout.fillHeight: true; color: topPanel.clrBorder }
+                        Rectangle {
+                            width: 1
+                            Layout.fillHeight: true
+                            color: topPanel.clrBorder
+                            visible: topPanel.barMusicEnabled
+                        }
 
                         // ── Col 2: controles rápidos + calendario (ancho fijo) ─
                         Item {
@@ -268,7 +309,9 @@ PanelWindow {
 
                                     AmbxstCalendar {
                                         Layout.fillWidth: true
-                                        Layout.preferredHeight: width
+                                        Layout.preferredHeight: topPanel.barCalendarEnabled ? width : 0
+                                        visible: topPanel.barCalendarEnabled
+                                        enabled: topPanel.barCalendarEnabled
                                     }
                                 }
                             }
@@ -290,20 +333,33 @@ PanelWindow {
                             active: widgetsPane.active && root.topPanelVisible
                         }
 
-                        Rectangle { width: 1; Layout.fillHeight: true; color: topPanel.clrBorder }
+                        Rectangle {
+                            width: 1
+                            Layout.fillHeight: true
+                            color: topPanel.clrBorder
+                            visible: topPanel.barVolumeEnabled
+                        }
 
                         // ── Col 4: volumen por aplicaciones ───────────────────
                         AppVolumeWidget {
-                            Layout.preferredWidth: 308
+                            Layout.preferredWidth: topPanel.barVolumeEnabled ? 308 : 0
                             Layout.fillHeight: true
+                            visible: topPanel.barVolumeEnabled
+                            enabled: topPanel.barVolumeEnabled
                         }
 
-                        Rectangle { width: 1; Layout.fillHeight: true; color: topPanel.clrBorder }
+                        Rectangle {
+                            width: 1
+                            Layout.fillHeight: true
+                            color: topPanel.clrBorder
+                        }
 
                         // ── Col 5: sliders verticales brillo + volumen (48px) ─
                         AmbxstVerticalSliders {
                             Layout.preferredWidth: 48
                             Layout.fillHeight: true
+                            visible: true
+                            enabled: true
                         }
                     }
                 } // Tab 0
@@ -1825,11 +1881,14 @@ PanelWindow {
                             Layout.topMargin:    8
                             Layout.bottomMargin: 8
                             color: topPanel.clrBorder
+                            visible: topPanel.barVolumeEnabled
                         }
 
                         AppVolumeWidget {
-                            Layout.preferredWidth: 288
+                            Layout.preferredWidth: topPanel.barVolumeEnabled ? 288 : 0
                             Layout.fillHeight: true
+                            visible: topPanel.barVolumeEnabled
+                            enabled: topPanel.barVolumeEnabled
                         }
                     }
                 }

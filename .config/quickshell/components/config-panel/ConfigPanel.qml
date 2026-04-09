@@ -45,6 +45,7 @@ Scope {
   property var appsData: ({})
   property var _appKeys: []
   property string _appSearchFilter: ""
+  property bool _lastSavedBarEnabled: true
 
   FileView {
     id: configFile
@@ -73,6 +74,7 @@ Scope {
     if (!text) return
     try {
       configData = JSON.parse(text)
+      _lastSavedBarEnabled = getNested(configData, ["components", "bar", "enabled"], true)
       configDataChanged()
     } catch (e) {
       console.log("ConfigPanel: Failed to parse config.json:", e)
@@ -160,12 +162,21 @@ Scope {
 
   function saveAll() {
     try {
+      var currentBarEnabled = getNested(configData, ["components", "bar", "enabled"], true)
+      var barChanged = currentBarEnabled !== _lastSavedBarEnabled
       configFile.setText(JSON.stringify(configData, null, 2) + "\n")
       appsFile.setText(JSON.stringify(appsData, null, 2) + "\n")
+      if (barChanged) waybarToggleProcess.running = true
+      _lastSavedBarEnabled = currentBarEnabled
       hasUnsavedChanges = false
     } catch (e) {
       console.log("ConfigPanel: Failed to save:", e)
     }
+  }
+
+  Process {
+    id: waybarToggleProcess
+    command: ["pkill", "-SIGUSR1", "waybar"]
   }
 
   function discardChanges() {

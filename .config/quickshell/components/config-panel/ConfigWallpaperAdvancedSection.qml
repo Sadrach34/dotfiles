@@ -16,7 +16,7 @@ Column {
     panel.configDataChanged()
   }
 
-  ConfigSectionTitle { text: "WALLPAPER ADVANCED"; colors: root.colors }
+  ConfigSectionTitle { text: "ADVANCED OPTIONS (WALLPAPER+)"; colors: root.colors }
 
   ConfigTextField {
     label: "Display mode"
