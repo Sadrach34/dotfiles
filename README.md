@@ -1,10 +1,12 @@
+<div align="center">
+  
 ```
-                ███████╗██████╗ ██████╗ ██╗  ██╗
-                ██╔════╝██╔══██╗██╔══██╗╚██╗██╔╝
-                ███████╗██║  ██║██████╔╝ ╚███╔╝
-                ╚════██║██║  ██║██╔══██╗ ██╔██╗
-                ███████║██████╔╝██║  ██║██╔╝ ██╗
-                ╚══════╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
+                          ███████╗██████╗ ██████╗ ██╗  ██╗
+                          ██╔════╝██╔══██╗██╔══██╗╚██╗██╔╝
+                          ███████╗██║  ██║██████╔╝ ╚███╔╝ 
+                          ╚════██║██║  ██║██╔══██╗ ██╔██╗ 
+                          ███████║██████╔╝██║  ██║██╔╝ ██╗
+                          ╚══════╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
 ```
 
 # sadrach34 / SdrxDots
@@ -15,9 +17,13 @@
 ![](https://img.shields.io/github/stars/Sadrach34/SdrxDots?style=for-the-badge&color=f38ba8&labelColor=1e1e2e&logo=starship&logoColor=cdd6f4)
 ![](https://img.shields.io/github/repo-size/Sadrach34/SdrxDots?style=for-the-badge&color=a6e3a1&labelColor=1e1e2e&logo=files&logoColor=cdd6f4)
 
+</div>
+
 ---
 
-## Screenshots
+<div align="center">
+  <h2>· screenshots ·</h2>
+</div>
 
 ### Main desktop
 
@@ -46,7 +52,9 @@
 
 ---
 
-## What's included
+<div align="center">
+  <h2>· what's included ·</h2>
+</div>
 
 <details open>
 <summary><b>Main components</b></summary>
@@ -77,7 +85,9 @@ Only **static** wallpapers are included to ensure compatibility with all backend
 
 ---
 
-## Documentation & Wiki
+<div align="center">
+  <h2>· documentation & wiki ·</h2>
+</div>
 
 For detailed documentation, installation guides, and component information in your language, visit the **[SdrxDots Wiki](https://github.com/Sadrach34/SdrxDots/wiki)**.
 
@@ -93,7 +103,9 @@ For detailed documentation, installation guides, and component information in yo
 
 <div align="center">
   <h2>· installation ·</h2>
-## Installationrst installation
+</div>
+
+### First installation
 
 ```bash
 git clone https://github.com/Sadrach34/SdrxDots.git
@@ -165,7 +177,9 @@ bash install.sh
   <h2>· structure ·</h2>
 </div>
 
-## Structureonfig/
+```
+SdrxDots/
+├── .config/
 │   ├── hypr/          # compositor — keybinds, monitors, scripts
 │   ├── quickshell/    # widgets — panel, dashboard, launcher, clock
 │   └── waybar/        # bar — modules and Quickshell integration
@@ -181,7 +195,9 @@ bash install.sh
   <h2>· credits ·</h2>
 </div>
 
-## Credits
+Repository maintained by [sadrach34](https://github.com/Sadrach34).  
+Projects and people that served as inspiration or reference:
+
 - **[JaKooLit](https://github.com/JaKooLit)** — Hyprland structure and scripting
 - **[ambxst](https://github.com/Axenide)** — Quickshell aesthetics and layout
 - **[Skewed / liixini](https://github.com/liixini)** — appselector and applauncher design
