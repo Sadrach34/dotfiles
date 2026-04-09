@@ -265,7 +265,7 @@ if terminal_exists; then
 
   if [ "$focused_monitor" != "$dropdown_monitor" ]; then
     debug_echo "Monitor changed → relocating to $focused_monitor"
-    local pos_info
+    pos_info=""
     pos_info=$(calculate_dropdown_position)
     target_x=$(echo $pos_info | cut -d' ' -f1)
     target_y=$(echo $pos_info | cut -d' ' -f2)

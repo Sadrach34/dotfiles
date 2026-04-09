@@ -11,15 +11,6 @@ if pidof rofi > /dev/null; then
   pkill rofi
 fi
 
-emoji_data | \
-rofi -i -dmenu -mesg "$msg" -config $rofi_theme | \
-awk '{print $1}' | \
-head -n 1 | \
-tr -d '\n' | \
-wl-copy
-
-exit
-
 emoji_data() {
 cat <<'EOF'
 😀 grinning face face smile happy joy :D grin
@@ -1873,3 +1864,12 @@ ycap  symbol blue-square twitter
 🟰 heavy equals sign math
 EOF
 }
+
+emoji_data | \
+rofi -i -dmenu -mesg "$msg" -config $rofi_theme | \
+awk '{print $1}' | \
+head -n 1 | \
+tr -d '\n' | \
+wl-copy
+
+exit

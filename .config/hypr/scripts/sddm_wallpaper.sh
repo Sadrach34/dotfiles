@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+#
+# Legacy helper script kept commented intentionally.
+# shellcheck disable=all
 # #!/bin/bash
 # # /* ---- 💫 https://github.com/JaKooLit 💫 ---- */
 # Contributor: sadrach34 (mods and maintenance)

@@ -51,4 +51,4 @@ jobs:
             exit 0
           fi
 
-          shellcheck --severity=warning "${files[@]}"
+          shellcheck --severity=error "${files[@]}"
