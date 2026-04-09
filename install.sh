@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SdrxDots Installer v3 - sadrach
+# SdrxDots Installer - sadrach
 # Fusion de install.sh + install2.sh
 # =============================================================================
 
@@ -1084,7 +1084,11 @@ EOF
 }
 
 main() {
-  section "SdrxDots Installer v3"
+  if [[ "$MODE" == "update" ]]; then
+    section "SdrxDots Updater"
+  else
+    section "SdrxDots Installer"
+  fi
   info "Repositorio: $REPO_DIR"
   info "Modo: $MODE"
   warn "Se crearan backups en $BACKUP_ROOT"
