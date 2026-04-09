@@ -43,6 +43,9 @@
     "deviceType": "auto",
     "profile": "performance"
   },
+  "optimization": {
+    "enabled": false
+  },
   "wallpaperMute": true,
   "components": {
     "bar": {

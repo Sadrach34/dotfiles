@@ -59,6 +59,7 @@ Scope {
   property bool _lastSavedBarEnabled: true
   property string _lastSavedPowerDeviceType: "auto"
   property string _lastSavedPowerProfile: "performance"
+  property bool _lastSavedOptimizationEnabled: false
 
   readonly property color cfgSurfaceColor: (colorService && colorService.hasCustomFilterBarBg)
     ? Qt.rgba(colorService.filterBarBg.r, colorService.filterBarBg.g, colorService.filterBarBg.b, 0.92)
@@ -114,6 +115,7 @@ Scope {
       _lastSavedBarEnabled = getNested(configData, ["components", "bar", "enabled"], true)
       _lastSavedPowerDeviceType = getNested(configData, ["power", "deviceType"], "auto")
       _lastSavedPowerProfile = getNested(configData, ["power", "profile"], "performance")
+      _lastSavedOptimizationEnabled = getNested(configData, ["optimization", "enabled"], false)
       configDataChanged()
     } catch (e) {
       console.log("ConfigPanel: Failed to parse config.json:", e)
@@ -227,6 +229,17 @@ Scope {
     powerApplyProcess.running = true
   }
 
+  function _applyOptimizationEnabled(enabled) {
+    var cmd = ""
+    if (enabled) {
+      cmd = "hyprctl --batch \"keyword animations:enabled 0;keyword decoration:blur:enabled 0;keyword decoration:shadow:enabled 0;keyword decoration:dim_inactive 0;keyword decoration:active_opacity 1.0;keyword decoration:inactive_opacity 1.0;keyword general:gaps_in 0;keyword general:gaps_out 0;keyword general:border_size 1;keyword decoration:rounding 0;keyword misc:vfr 0;keyword misc:vrr 2\" >/dev/null 2>&1 || true"
+    } else {
+      cmd = "hyprctl --batch \"keyword animations:enabled 1;keyword decoration:blur:enabled 1;keyword decoration:shadow:enabled 1;keyword decoration:dim_inactive 1;keyword decoration:active_opacity 1.0;keyword decoration:inactive_opacity 0.9;keyword general:gaps_in 2;keyword general:gaps_out 4;keyword general:border_size 2;keyword decoration:rounding 10;keyword misc:vfr 1;keyword misc:vrr 0\" >/dev/null 2>&1 || true"
+    }
+    optimizationApplyProcess.command = ["bash", "-lc", cmd]
+    optimizationApplyProcess.running = true
+  }
+
   function saveAll() {
     try {
       var currentBarEnabled = getNested(configData, ["components", "bar", "enabled"], true)
@@ -234,13 +247,17 @@ Scope {
       var currentPowerDeviceType = getNested(configData, ["power", "deviceType"], "auto")
       var currentPowerProfile = getNested(configData, ["power", "profile"], "performance")
       var powerChanged = currentPowerDeviceType !== _lastSavedPowerDeviceType || currentPowerProfile !== _lastSavedPowerProfile
+      var currentOptimizationEnabled = getNested(configData, ["optimization", "enabled"], false)
+      var optimizationChanged = currentOptimizationEnabled !== _lastSavedOptimizationEnabled
       configFile.setText(JSON.stringify(configData, null, 2) + "\n")
       appsFile.setText(JSON.stringify(appsData, null, 2) + "\n")
       if (barChanged) _applyWaybarEnabled(currentBarEnabled)
       if (powerChanged) _applyPowerFromConfig()
+      if (optimizationChanged) _applyOptimizationEnabled(currentOptimizationEnabled)
       _lastSavedBarEnabled = currentBarEnabled
       _lastSavedPowerDeviceType = currentPowerDeviceType
       _lastSavedPowerProfile = currentPowerProfile
+      _lastSavedOptimizationEnabled = currentOptimizationEnabled
       hasUnsavedChanges = false
       postSaveReloadTimer.restart()
     } catch (e) {
@@ -255,6 +272,11 @@ Scope {
 
   Process {
     id: powerApplyProcess
+    command: ["bash", "-lc", "true"]
+  }
+
+  Process {
+    id: optimizationApplyProcess
     command: ["bash", "-lc", "true"]
   }
 

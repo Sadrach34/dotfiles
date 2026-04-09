@@ -352,14 +352,15 @@ PanelWindow {
                             width: 1
                             Layout.fillHeight: true
                             color: topPanel.clrBorder
+                            visible: topPanel.barVolumeEnabled
                         }
 
                         // ── Col 5: sliders verticales brillo + volumen (48px) ─
                         AmbxstVerticalSliders {
-                            Layout.preferredWidth: 48
+                            Layout.preferredWidth: topPanel.barVolumeEnabled ? 48 : 0
                             Layout.fillHeight: true
-                            visible: true
-                            enabled: true
+                            visible: topPanel.barVolumeEnabled
+                            enabled: topPanel.barVolumeEnabled
                         }
                     }
                 } // Tab 0

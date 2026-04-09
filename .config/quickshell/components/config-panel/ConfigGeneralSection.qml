@@ -80,4 +80,13 @@ Column {
     onEdited: v => { panel.setNested(panel.configData, ["matugen", "kdeColorScheme"], v); panel.configDataChanged() }
     colors: root.colors
   }
+
+  ConfigSectionTitle { text: "OPTIMIZACION"; topPad: 16; colors: root.colors }
+
+  ConfigToggle {
+    label: "Modo optimizacion (sin animaciones/blur/redondeado)"
+    checked: panel.getNested(panel.configData, ["optimization", "enabled"], false)
+    onToggled: v => { panel.setNested(panel.configData, ["optimization", "enabled"], v); panel.configDataChanged() }
+    colors: root.colors
+  }
 }
