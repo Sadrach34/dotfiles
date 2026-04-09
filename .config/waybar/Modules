@@ -306,7 +306,7 @@
   "format": "{icon} ",
   "tooltip-format": "Power profile: {profile}\nDriver: {driver}",
   "tooltip": true,
-	"on-click": "powerprofilesctl set $(powerprofilesctl list | awk '/\*/ {print $2; exit}' | awk '{if ($1==\"power-saver\") print \"balanced\"; else if ($1==\"balanced\") print \"performance\"; else print \"power-saver\"}')",
+	"on-click": "powerprofilesctl set $(powerprofilesctl list | awk '$1==\"*\" {print $2; exit}' | awk '{if ($1==\"power-saver\") print \"balanced\"; else if ($1==\"balanced\") print \"performance\"; else print \"power-saver\"}')",
   "format-icons": {
     "default": "",
     "performance": "",
