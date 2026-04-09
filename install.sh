@@ -32,10 +32,13 @@ WITH_ANIMATIONS="auto"      # auto|yes|no
 WITH_GAMER="auto"           # auto|yes|no
 WITH_PROGRAMMER="auto"      # auto|yes|no
 WITH_LAPTOP="auto"          # auto|yes|no
+WITH_SDDM="auto"            # auto|yes|no
+WITH_GRUB="auto"            # auto|yes|no
 
 SDDM_THEME_NAME="sddm-astronaut-theme"
 SDDM_THEME_VARIANT="black_hole"
 SDDM_STOW_PACKAGE="sddm"
+GRUB_STOW_PACKAGE="grub"
 
 usage() {
   cat <<'HELP'
@@ -46,6 +49,10 @@ Opciones:
   --update           Forzar modo actualizacion
   --yes, -y          No pedir confirmaciones (acepta todo por defecto)
   --skip-packages    No instalar paquetes
+  --sddm             Instalar/configurar SDDM de dotfiles
+  --no-sddm          No tocar SDDM
+  --grub             Instalar/configurar GRUB de dotfiles
+  --no-grub          No tocar GRUB
   --laptop           Activar ajustes para laptop (Waybar con bateria)
   --no-laptop        Desactivar ajustes de laptop
   --animations       Activar stack visual completo
@@ -68,6 +75,10 @@ while [[ $# -gt 0 ]]; do
     --update) MODE="update" ;;
     --yes|-y) ASSUME_YES=true ;;
     --skip-packages) SKIP_PACKAGES=true ;;
+    --sddm) WITH_SDDM="yes" ;;
+    --no-sddm) WITH_SDDM="no" ;;
+    --grub) WITH_GRUB="yes" ;;
+    --no-grub) WITH_GRUB="no" ;;
     --laptop) WITH_LAPTOP="yes" ;;
     --no-laptop) WITH_LAPTOP="no" ;;
     --animations) WITH_ANIMATIONS="yes" ;;
@@ -104,6 +115,16 @@ load_previous_option_defaults() {
   if [[ "$WITH_LAPTOP" == "auto" ]]; then
     prev="$(read_marker_value laptop)"
     [[ "$prev" =~ ^(yes|no)$ ]] && WITH_LAPTOP="$prev"
+  fi
+
+  if [[ "$WITH_SDDM" == "auto" ]]; then
+    prev="$(read_marker_value sddm)"
+    [[ "$prev" =~ ^(yes|no)$ ]] && WITH_SDDM="$prev"
+  fi
+
+  if [[ "$WITH_GRUB" == "auto" ]]; then
+    prev="$(read_marker_value grub)"
+    [[ "$prev" =~ ^(yes|no)$ ]] && WITH_GRUB="$prev"
   fi
 
   if [[ "$WITH_ANIMATIONS" == "auto" ]]; then
@@ -153,6 +174,22 @@ ask_yes_no() {
 }
 
 select_optional_modules() {
+  if [[ "$WITH_SDDM" == "auto" ]]; then
+    if ask_yes_no "Instalar/configurar SDDM desde dotfiles (stow)?" true; then
+      WITH_SDDM="yes"
+    else
+      WITH_SDDM="no"
+    fi
+  fi
+
+  if [[ "$WITH_GRUB" == "auto" ]]; then
+    if ask_yes_no "Instalar/configurar GRUB desde dotfiles (stow)?" false; then
+      WITH_GRUB="yes"
+    else
+      WITH_GRUB="no"
+    fi
+  fi
+
   if [[ "$WITH_LAPTOP" == "auto" ]]; then
     if ask_yes_no "Es laptop? (activar bateria en Waybar)" false; then
       WITH_LAPTOP="yes"
@@ -321,45 +358,32 @@ install_sddm_like_sadrach() {
   pacman_install sddm qt6-svg qt6-virtualkeyboard qt6-multimedia-ffmpeg
 
   local stow_theme_src="$REPO_DIR/$SDDM_STOW_PACKAGE/usr/share/sddm/themes/$SDDM_THEME_NAME"
-  local repo_theme_src="$REPO_DIR/$SDDM_THEME_NAME"
-  local home_theme_src="$HOME/$SDDM_THEME_NAME"
-  local theme_src=""
   local dst="/usr/share/sddm/themes/$SDDM_THEME_NAME"
-  local src_metadata=""
   local metadata="$dst/metadata.desktop"
   local selected_variant="$SDDM_THEME_VARIANT"
+  local sddm_pkg_dir="$REPO_DIR/$SDDM_STOW_PACKAGE"
 
-  # Prefer explicit local sources that include Main.qml so we do not keep a broken system copy.
-  if [[ -f "$stow_theme_src/Main.qml" ]]; then
-    theme_src="$stow_theme_src"
-  elif [[ -f "$repo_theme_src/Main.qml" ]]; then
-    theme_src="$repo_theme_src"
-  elif [[ -f "$home_theme_src/Main.qml" ]]; then
-    theme_src="$home_theme_src"
-  elif [[ -f "$dst/Main.qml" ]]; then
-    theme_src="$dst"
-  else
-    error "No se encontro una copia valida de $SDDM_THEME_NAME con Main.qml"
+  if [[ ! -d "$sddm_pkg_dir" ]]; then
+    error "No existe paquete stow de SDDM en $sddm_pkg_dir"
   fi
 
-  src_metadata="$theme_src/metadata.desktop"
+  if [[ ! -f "$stow_theme_src/Main.qml" ]]; then
+    error "Paquete SDDM invalido: falta Main.qml en $stow_theme_src"
+  fi
+
+  local src_metadata="$stow_theme_src/metadata.desktop"
   if [[ -f "$src_metadata" ]]; then
     selected_variant="$(sed -n 's|^ConfigFile=Themes/\(.*\)\.conf|\1|p' "$src_metadata" | head -n1 || true)"
     [[ -n "$selected_variant" ]] || selected_variant="$SDDM_THEME_VARIANT"
   fi
 
-  if [[ -L "$dst" ]]; then
-    warn "Se detecto symlink en $dst; se reemplazara por copia real local"
-    sudo rm -f "$dst"
-  fi
+  # stow no puede enlazar si existen archivos/directorios reales en conflicto.
+  sudo rm -rf "$dst"
+  sudo rm -f /etc/sddm.conf /etc/sddm.conf.d/virtualkbd.conf
 
-  sudo mkdir -p "$dst"
-  if [[ "$theme_src" != "$dst" ]]; then
-    sudo rsync -a --delete --exclude '.git/' "$theme_src/" "$dst/"
-  else
-    info "Tema ya presente en $dst, se mantiene tal cual"
+  if ! sudo stow -d "$REPO_DIR" -t / "$SDDM_STOW_PACKAGE"; then
+    error "Fallo stow para paquete $SDDM_STOW_PACKAGE"
   fi
-  sudo chmod -R a+rX "$dst" || warn "No se pudieron normalizar permisos del tema"
 
   if [[ ! -f "$dst/Main.qml" ]]; then
     error "Tema incompleto en $dst: falta Main.qml"
@@ -373,9 +397,9 @@ install_sddm_like_sadrach() {
     fi
   fi
 
+  # Reforzar config activa incluso si ya vino desde stow.
   echo "[Theme]
     Current=$SDDM_THEME_NAME" | sudo tee /etc/sddm.conf >/dev/null
-
   sudo mkdir -p /etc/sddm.conf.d
   echo "[General]
     InputMethod=qtvirtualkeyboard" | sudo tee /etc/sddm.conf.d/virtualkbd.conf >/dev/null
@@ -395,6 +419,40 @@ install_sddm_like_sadrach() {
   fi
 
   ok "SDDM configurado igual a tu setup local (Astronaut + $selected_variant)"
+}
+
+install_grub_like_sadrach() {
+  section "GRUB igual que tu setup"
+
+  local grub_pkg_dir="$REPO_DIR/$GRUB_STOW_PACKAGE"
+  if [[ ! -d "$grub_pkg_dir" ]]; then
+    warn "No existe paquete stow de GRUB en $grub_pkg_dir"
+    return
+  fi
+
+  if ! command -v grub-mkconfig >/dev/null 2>&1; then
+    warn "grub-mkconfig no disponible; se aplicara stow sin regenerar grub.cfg"
+  fi
+
+  # Minimizar conflictos tipicos al stowear GRUB.
+  sudo rm -f /etc/default/grub
+
+  if ! sudo stow -d "$REPO_DIR" -t / "$GRUB_STOW_PACKAGE"; then
+    warn "Fallo stow para GRUB"
+    return
+  fi
+
+  if command -v grub-mkconfig >/dev/null 2>&1; then
+    if [[ -d /boot/grub ]]; then
+      sudo grub-mkconfig -o /boot/grub/grub.cfg || warn "No se pudo regenerar /boot/grub/grub.cfg"
+    elif [[ -d /boot/grub2 ]]; then
+      sudo grub-mkconfig -o /boot/grub2/grub.cfg || warn "No se pudo regenerar /boot/grub2/grub.cfg"
+    else
+      warn "No se detecto ruta de grub.cfg (/boot/grub o /boot/grub2)"
+    fi
+  fi
+
+  ok "GRUB configurado desde dotfiles (stow)"
 }
 
 install_animation_stack() {
@@ -981,6 +1039,8 @@ main() {
   local pkgm
   pkgm="$(detect_pkg_manager)"
   info "Gestor detectado: $pkgm"
+  info "SDDM: $WITH_SDDM"
+  info "GRUB: $WITH_GRUB"
   info "Laptop: $WITH_LAPTOP"
   info "Animaciones: $WITH_ANIMATIONS"
   info "Modo gamer: $WITH_GAMER"
@@ -999,7 +1059,15 @@ main() {
     if [[ "$pkgm" == "pacman" ]]; then
       install_base_packages_pacman
       install_core_desktop
-      install_sddm_like_sadrach
+
+      if [[ "$WITH_SDDM" == "yes" ]]; then
+        install_sddm_like_sadrach
+      fi
+
+      if [[ "$WITH_GRUB" == "yes" ]]; then
+        install_grub_like_sadrach
+      fi
+
       install_zsh_stack
 
       if [[ "$WITH_ANIMATIONS" == "yes" ]]; then
@@ -1034,8 +1102,8 @@ main() {
   set_default_shell
 
   mkdir -p "$(dirname "$MARKER_FILE")"
-  printf "mode=%s\ndate=%s\nrepo=%s\nlaptop=%s\nanimations=%s\ngamer=%s\nprogrammer=%s\n" \
-    "$MODE" "$(date -Iseconds)" "$REPO_DIR" "$WITH_LAPTOP" "$WITH_ANIMATIONS" "$WITH_GAMER" "$WITH_PROGRAMMER" > "$MARKER_FILE"
+  printf "mode=%s\ndate=%s\nrepo=%s\nsddm=%s\ngrub=%s\nlaptop=%s\nanimations=%s\ngamer=%s\nprogrammer=%s\n" \
+    "$MODE" "$(date -Iseconds)" "$REPO_DIR" "$WITH_SDDM" "$WITH_GRUB" "$WITH_LAPTOP" "$WITH_ANIMATIONS" "$WITH_GAMER" "$WITH_PROGRAMMER" > "$MARKER_FILE"
 
   echo
   ok "Instalacion completada"
