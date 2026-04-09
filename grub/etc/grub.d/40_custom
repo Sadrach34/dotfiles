@@ -1,0 +1,20 @@
+#!/bin/sh
+exec tail -n +3 $0
+# This file provides an easy way to add custom menu entries.  Simply type the
+# menu entries you want to add after this comment.  Be careful not to change
+# the 'exec tail' line above.
+
+#!/bin/sh
+exec tail -n +3 $0
+# This file provides an easy way to add custom menu entries. Simply type the
+# menu entries you want to add after this comment. Be careful not to change
+# the 'exec tail' line above.
+
+menuentry 'Bazzite (Versión Final)' --class fedora --class gnu-linux --class gnu --class os {
+    # UUID de la partición /boot de Bazzite (sdd2)
+    search --no-floppy --fs-uuid --set=boot cfcb6f33-a21f-480b-bfa9-c561cd903d4e
+
+    # Carga el kernel y el initrd, pasando TODOS los parámetros originales de Bazzite
+    linux ($boot)/ostree/default-3cf99ce558db19c293330fc278023b9b568368f5c5d3657b3acdefbaf16fb9ed/vmlinuz-6.16.4-108.bazzite.fc42.x86_64 root=UUID=115b282b-e5e4-40e8-802f-6bed6d368477 rootflags=subvol=root rw ostree=/ostree/boot.0/default/3cf99ce558db19c293330fc278023b9b568368f5c5d3657b3acdefbaf16fb9ed/0 rhgb quiet bluetooth.disable_ertm=1
+    initrd ($boot)/ostree/default-3cf99ce558db19c293330fc278023b9b568368f5c5d3657b3acdefbaf16fb9ed/initramfs-6.16.4-108.bazzite.fc42.x86_64.img
+}
