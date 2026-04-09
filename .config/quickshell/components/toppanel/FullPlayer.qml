@@ -116,10 +116,10 @@ Rectangle {
     function getPlayerIcon(p) {
         if (!p) return player.icPlayer
         var n = ((p.desktopEntry ?? "") + (p.identity ?? "")).toLowerCase()
-        if (n.includes("spotify"))                         return "<font face='Symbols Nerd Font Mono'>\udb81\udcd7</font>"
-        if (n.includes("firefox"))                         return "<font face='Symbols Nerd Font Mono'>\udb80\udc39</font>"
-        if (n.includes("chromium") || n.includes("chrome")) return "<font face='Symbols Nerd Font Mono'>\udbe9\udd17</font>"
-        if (n.includes("telegram"))                        return "<font face='Symbols Nerd Font Mono'>\udbe8\ude8b</font>"
+        if (n.includes("spotify"))                         return "<font face='Symbols Nerd Font'>\udb81\udcd7</font>"
+        if (n.includes("firefox"))                         return "<font face='Symbols Nerd Font'>\udb80\udc39</font>"
+        if (n.includes("chromium") || n.includes("chrome")) return "<font face='Symbols Nerd Font'>\udbe9\udd17</font>"
+        if (n.includes("telegram"))                        return "<font face='Symbols Nerd Font'>\udbe8\ude8b</font>"
         return player.icPlayer
     }
 

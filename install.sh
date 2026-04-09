@@ -321,22 +321,25 @@ install_sddm_like_sadrach() {
   pacman_install sddm qt6-svg qt6-virtualkeyboard qt6-multimedia-ffmpeg
 
   local stow_theme_src="$REPO_DIR/$SDDM_STOW_PACKAGE/usr/share/sddm/themes/$SDDM_THEME_NAME"
+  local repo_theme_src="$REPO_DIR/$SDDM_THEME_NAME"
+  local home_theme_src="$HOME/$SDDM_THEME_NAME"
   local theme_src=""
   local dst="/usr/share/sddm/themes/$SDDM_THEME_NAME"
   local src_metadata=""
   local metadata="$dst/metadata.desktop"
   local selected_variant="$SDDM_THEME_VARIANT"
 
-  if [[ -d "$stow_theme_src" ]]; then
+  # Prefer explicit local sources that include Main.qml so we do not keep a broken system copy.
+  if [[ -f "$stow_theme_src/Main.qml" ]]; then
     theme_src="$stow_theme_src"
-  elif [[ -d "/usr/share/sddm/themes/$SDDM_THEME_NAME" ]]; then
-    theme_src="/usr/share/sddm/themes/$SDDM_THEME_NAME"
-  elif [[ -d "$REPO_DIR/$SDDM_THEME_NAME" ]]; then
-    theme_src="$REPO_DIR/$SDDM_THEME_NAME"
-  elif [[ -d "$HOME/$SDDM_THEME_NAME" ]]; then
-    theme_src="$HOME/$SDDM_THEME_NAME"
+  elif [[ -f "$repo_theme_src/Main.qml" ]]; then
+    theme_src="$repo_theme_src"
+  elif [[ -f "$home_theme_src/Main.qml" ]]; then
+    theme_src="$home_theme_src"
+  elif [[ -f "$dst/Main.qml" ]]; then
+    theme_src="$dst"
   else
-    error "No se encontro tema local $SDDM_THEME_NAME. Colocalo en $REPO_DIR/$SDDM_THEME_NAME o $HOME/$SDDM_THEME_NAME"
+    error "No se encontro una copia valida de $SDDM_THEME_NAME con Main.qml"
   fi
 
   src_metadata="$theme_src/metadata.desktop"
@@ -345,11 +348,21 @@ install_sddm_like_sadrach() {
     [[ -n "$selected_variant" ]] || selected_variant="$SDDM_THEME_VARIANT"
   fi
 
+  if [[ -L "$dst" ]]; then
+    warn "Se detecto symlink en $dst; se reemplazara por copia real local"
+    sudo rm -f "$dst"
+  fi
+
   sudo mkdir -p "$dst"
   if [[ "$theme_src" != "$dst" ]]; then
     sudo rsync -a --delete --exclude '.git/' "$theme_src/" "$dst/"
   else
     info "Tema ya presente en $dst, se mantiene tal cual"
+  fi
+  sudo chmod -R a+rX "$dst" || warn "No se pudieron normalizar permisos del tema"
+
+  if [[ ! -f "$dst/Main.qml" ]]; then
+    error "Tema incompleto en $dst: falta Main.qml"
   fi
   ok "Tema instalado: $dst"
 
@@ -825,6 +838,13 @@ install_custom_fonts_best_effort() {
 
   mkdir -p "$dst_fonts"
   rsync -a "$src_fonts/" "$dst_fonts/"
+
+  # Quickshell usa varios iconos Phosphor-Bold; si no existe, se ven '?' o glifos incorrectos.
+  if [[ ! -f "$dst_fonts/Phosphor-Bold.ttf" || ! -f "$dst_fonts/Phosphor.ttf" ]]; then
+    info "Descargando fuentes Phosphor faltantes..."
+    curl -fsSL "https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/Phosphor-Bold.ttf" -o "$dst_fonts/Phosphor-Bold.ttf" || warn "No se pudo descargar Phosphor-Bold.ttf"
+    curl -fsSL "https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/Phosphor.ttf" -o "$dst_fonts/Phosphor.ttf" || warn "No se pudo descargar Phosphor.ttf"
+  fi
 
   if command -v fc-cache >/dev/null 2>&1; then
     fc-cache -f "$dst_fonts" >/dev/null 2>&1 || warn "No se pudo refrescar cache de fuentes de usuario"

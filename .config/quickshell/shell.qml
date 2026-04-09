@@ -12,7 +12,10 @@ import "./screenshot"
 ShellRoot {
     id: root
 
-    // Cargar Phosphor de forma explícita para que Qt lo encuentre por nombre en todos los módulos
+    // Cargar Phosphor de forma explícita para que Qt lo encuentre por nombre en todos los módulos.
+    // Preferimos fuentes de usuario (instaladas por install.sh) y dejamos fallback global.
+    FontLoader { source: Quickshell.env("HOME") + "/.local/share/fonts/Phosphor-Bold.ttf" }
+    FontLoader { source: Quickshell.env("HOME") + "/.local/share/fonts/Phosphor.ttf" }
     FontLoader { source: "/usr/share/fonts/TTF/Phosphor-Bold.ttf" }
     FontLoader { source: "/usr/share/fonts/TTF/Phosphor.ttf" }
 
