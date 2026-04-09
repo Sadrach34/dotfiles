@@ -60,8 +60,8 @@
 <summary><b>Main components</b></summary>
 <br>
 
-| Component       | Stack      | Description                                                         |
-| --------------- | ---------- | ------------------------------------------------------------------- |
+| Component       | Stack      | Description                                                        |
+| --------------- | ---------- | ------------------------------------------------------------------ |
 | **Hyprland**    | compositor | Keybinds, scripts, autostart, and wallpaper management             |
 | **Quickshell**  | widgets    | Top panel, dashboard, launcher, wallpaper picker, and custom clock |
 | **Waybar**      | bar        | Extra modules with Quickshell integration                          |
@@ -92,6 +92,7 @@ Only **static** wallpapers are included to ensure compatibility with all backend
 For detailed documentation, installation guides, and component information in your language, visit the **[SdrxDots Wiki](https://github.com/Sadrach34/SdrxDots/wiki)**.
 
 **Available languages:**
+
 - 🇬🇧 **English** — [Home](https://github.com/Sadrach34/SdrxDots/wiki/Home-en) · [Installation](https://github.com/Sadrach34/SdrxDots/wiki/Installation-en) · [Components](https://github.com/Sadrach34/SdrxDots/wiki/Components-en)
 - 🇪🇸 **Español** — [Inicio](https://github.com/Sadrach34/SdrxDots/wiki/Home-es) · [Instalación](https://github.com/Sadrach34/SdrxDots/wiki/Installation-es) · [Componentes](https://github.com/Sadrach34/SdrxDots/wiki/Components-es)
 - 🇮🇳 **हिन्दी** — [गृह](https://github.com/Sadrach34/SdrxDots/wiki/Home-hi) · [स्थापना](https://github.com/Sadrach34/SdrxDots/wiki/Installation-hi) · [घटकों](https://github.com/Sadrach34/SdrxDots/wiki/Components-hi)
