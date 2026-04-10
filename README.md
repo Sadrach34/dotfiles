@@ -11,7 +11,7 @@
 
 # sadrach34 / SdrxDots
 
-**Hyprland · Arch Linux** — personal configuration for real-world use, not for demos.
+**Hyprland · Arch Linux** — personal configuration for real-world use.
 
 ![](https://img.shields.io/github/last-commit/Sadrach34/SdrxDots?style=for-the-badge&color=cba6f7&labelColor=1e1e2e&logo=git&logoColor=cdd6f4)
 ![](https://img.shields.io/github/stars/Sadrach34/SdrxDots?style=for-the-badge&color=f38ba8&labelColor=1e1e2e&logo=starship&logoColor=cdd6f4)
