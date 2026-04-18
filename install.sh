@@ -22,6 +22,7 @@ section() { echo -e "\n${BLUE}${BOLD}===  $1  ==================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$SCRIPT_DIR"
+DOTS_VERSION="1.3.1"
 BACKUP_ROOT="$HOME/.sdrxdots-backup"
 MARKER_FILE="$HOME/.local/share/sdrxdots-installed-v3"
 LEGACY_MARKER_FILE="$HOME/.local/share/sadrach-dotfiles-installed-v3"
@@ -40,6 +41,7 @@ SDDM_THEME_NAME="sddm-astronaut-theme"
 SDDM_THEME_VARIANT="black_hole"
 SDDM_STOW_PACKAGE="sddm"
 GRUB_STOW_PACKAGE="grub"
+GRUB_THEME_PATH="/usr/share/grub/themes/Vimix/theme.txt"
 
 usage() {
   cat <<'HELP'
@@ -441,35 +443,50 @@ install_sddm_like_sadrach() {
 install_grub_like_sadrach() {
   section "GRUB igual que tu setup"
 
-  local grub_pkg_dir="$REPO_DIR/$GRUB_STOW_PACKAGE"
-  if [[ ! -d "$grub_pkg_dir" ]]; then
-    warn "No existe paquete stow de GRUB en $grub_pkg_dir"
+  local grub_conf="/etc/default/grub"
+  local theme_line="GRUB_THEME=\"$GRUB_THEME_PATH\""
+  local bundled_theme_dir="$REPO_DIR/grub/usr/share/grub/themes/Vimix"
+  local theme_dir
+
+  theme_dir="${GRUB_THEME_PATH%/theme.txt}"
+
+  if [[ ! -f "$grub_conf" ]]; then
+    warn "No existe $grub_conf; se omite el ajuste del tema GRUB"
     return
+  fi
+
+  if [[ -d "$bundled_theme_dir" ]]; then
+    sudo mkdir -p "$(dirname "$theme_dir")"
+    sudo rsync -a "$bundled_theme_dir/" "$theme_dir/"
+    ok "Tema Vimix sincronizado desde dotfiles"
+  elif [[ ! -f "$GRUB_THEME_PATH" ]]; then
+    warn "No existe el tema Vimix en $GRUB_THEME_PATH"
+  fi
+
+  if grep -q '^[[:space:]]*GRUB_THEME=' "$grub_conf"; then
+    sudo sed -i "s|^[[:space:]]*GRUB_THEME=.*$|$theme_line|" "$grub_conf"
+  else
+    printf '\n%s\n' "$theme_line" | sudo tee -a "$grub_conf" >/dev/null
+  fi
+
+  if [[ -d "$theme_dir" ]]; then
+    ok "Tema GRUB localizado en $theme_dir"
   fi
 
   if ! command -v grub-mkconfig >/dev/null 2>&1; then
-    warn "grub-mkconfig no disponible; se aplicara stow sin regenerar grub.cfg"
-  fi
-
-  # Minimizar conflictos tipicos al stowear GRUB.
-  sudo rm -f /etc/default/grub
-
-  if ! sudo stow -d "$REPO_DIR" -t / "$GRUB_STOW_PACKAGE"; then
-    warn "Fallo stow para GRUB"
+    warn "grub-mkconfig no disponible; se dejo actualizado el archivo de configuracion"
     return
   fi
 
-  if command -v grub-mkconfig >/dev/null 2>&1; then
-    if [[ -d /boot/grub ]]; then
-      sudo grub-mkconfig -o /boot/grub/grub.cfg || warn "No se pudo regenerar /boot/grub/grub.cfg"
-    elif [[ -d /boot/grub2 ]]; then
-      sudo grub-mkconfig -o /boot/grub2/grub.cfg || warn "No se pudo regenerar /boot/grub2/grub.cfg"
-    else
-      warn "No se detecto ruta de grub.cfg (/boot/grub o /boot/grub2)"
-    fi
+  if [[ -d /boot/grub ]]; then
+    sudo grub-mkconfig -o /boot/grub/grub.cfg || warn "No se pudo regenerar /boot/grub/grub.cfg"
+  elif [[ -d /boot/grub2 ]]; then
+    sudo grub-mkconfig -o /boot/grub2/grub.cfg || warn "No se pudo regenerar /boot/grub2/grub.cfg"
+  else
+    warn "No se detecto ruta de grub.cfg (/boot/grub o /boot/grub2)"
   fi
 
-  ok "GRUB configurado desde SdrxDots (stow)"
+  ok "GRUB_THEME aplicado desde SdrxDots"
 }
 
 install_animation_stack() {
@@ -702,6 +719,29 @@ sync_directory_contents() {
   done < <(find "$src_dir" -mindepth 1 -print0)
 }
 
+cleanup_hypr_version_markers_best_effort() {
+  local src_hypr="$REPO_DIR/.config/hypr"
+  local dst_hypr="$HOME/.config/hypr"
+  local desired_marker
+
+  [[ -d "$src_hypr" ]] || return
+  mkdir -p "$dst_hypr"
+
+  desired_marker="$(find "$src_hypr" -maxdepth 1 -type f -name 'v*' -printf '%f\n' | sort -V | tail -n1 || true)"
+  [[ -n "$desired_marker" ]] || return
+
+  while IFS= read -r stale; do
+    rm -f "$stale"
+    warn "Version vieja eliminada: $stale"
+  done < <(find "$dst_hypr" -maxdepth 1 -type f -name 'v*' ! -name "$desired_marker")
+
+  if [[ ! -f "$dst_hypr/$desired_marker" ]]; then
+    cp -a "$src_hypr/$desired_marker" "$dst_hypr/$desired_marker"
+  fi
+
+  ok "Version Hypr activa: $desired_marker"
+}
+
 apply_sdrxdots() {
   section "Aplicando SdrxDots"
   mkdir -p "$BACKUP_ROOT"
@@ -710,6 +750,7 @@ apply_sdrxdots() {
 
   info "Sincronizando .config"
   sync_directory_contents "$REPO_DIR/.config" "$HOME/.config"
+  cleanup_hypr_version_markers_best_effort
 
   if [[ -f "$REPO_DIR/.zshrc" ]]; then
     backup_target "$REPO_DIR/.zshrc" "$HOME/.zshrc"
@@ -1166,8 +1207,8 @@ main() {
   set_default_shell
 
   mkdir -p "$(dirname "$MARKER_FILE")"
-  printf "mode=%s\ndate=%s\nrepo=%s\nsddm=%s\ngrub=%s\nlaptop=%s\nanimations=%s\ngamer=%s\nprogrammer=%s\n" \
-    "$MODE" "$(date -Iseconds)" "$REPO_DIR" "$WITH_SDDM" "$WITH_GRUB" "$WITH_LAPTOP" "$WITH_ANIMATIONS" "$WITH_GAMER" "$WITH_PROGRAMMER" > "$MARKER_FILE"
+  printf "version=%s\nmode=%s\ndate=%s\nrepo=%s\nsddm=%s\ngrub=%s\nlaptop=%s\nanimations=%s\ngamer=%s\nprogrammer=%s\n" \
+    "$DOTS_VERSION" "$MODE" "$(date -Iseconds)" "$REPO_DIR" "$WITH_SDDM" "$WITH_GRUB" "$WITH_LAPTOP" "$WITH_ANIMATIONS" "$WITH_GAMER" "$WITH_PROGRAMMER" > "$MARKER_FILE"
 
   echo
   ok "Instalacion completada"
