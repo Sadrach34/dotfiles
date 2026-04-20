@@ -7,3 +7,10 @@
 .config/quickshell/bak/
 .config/quickshell/components/ModernClockWidget20*/
 markdown/
+
+# Python cache artifacts
+__pycache__/
+*.py[cod]
+
+# Local assistant/context notes
+CLAUDE.md

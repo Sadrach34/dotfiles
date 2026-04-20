@@ -22,7 +22,7 @@ section() { echo -e "\n${BLUE}${BOLD}===  $1  ==================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$SCRIPT_DIR"
-DOTS_VERSION="1.3.1"
+DOTS_VERSION="1.3.3"
 BACKUP_ROOT="$HOME/.sdrxdots-backup"
 MARKER_FILE="$HOME/.local/share/sdrxdots-installed-v3"
 LEGACY_MARKER_FILE="$HOME/.local/share/sadrach-dotfiles-installed-v3"
@@ -332,7 +332,7 @@ install_base_packages_pacman() {
     fastfetch \
     python python-pip python-virtualenv pyenv python-pipx \
     wl-clipboard cliphist wl-clip-persist slurp grim swappy \
-    rofi fuzzel wofi pavucontrol pamixer \
+    rofi fuzzel wofi pavucontrol pamixer nwg-displays \
     blueman network-manager-applet \
     syncthing ufw \
     mpv vlc obs-studio easyeffects cava playerctl \
