@@ -16,12 +16,54 @@ CONFIG_PATH          = HOME / ".config/quickshell/data/config.json"
 APPS_PATH            = HOME / ".config/quickshell/data/apps.json"
 KEYBINDS_SYSTEM_PATH = HOME / ".config/hypr/configs/Keybinds.conf"
 KEYBINDS_USER_PATH   = HOME / ".config/hypr/UserConfigs/UserKeybinds.conf"
+USER_DEFAULTS_PATH   = HOME / ".config/hypr/UserConfigs/01-UserDefaults.conf"
+ENV_VARIABLES_PATH   = HOME / ".config/hypr/UserConfigs/ENVariables.conf"
+STARTUP_APPS_PATH    = HOME / ".config/hypr/UserConfigs/Startup_Apps.conf"
+WINDOW_RULES_PATH    = HOME / ".config/hypr/UserConfigs/WindowRules.conf"
 POWER_SCRIPT         = HOME / ".config/hypr/scripts/PowerProfileAuto.sh"
+HYPRIDLE_CONF_PATH   = HOME / ".config/hypr/hypridle.conf"
 WAYBAR_LAYOUTS_DIR   = HOME / ".config/waybar/configs"
 WAYBAR_STYLES_DIR    = HOME / ".config/waybar/style"
 WAYBAR_CONFIG_LINK   = HOME / ".config/waybar/config"
 WAYBAR_STYLE_LINK    = HOME / ".config/waybar/style.css"
 WAYBAR_STARTUP_LOG   = HOME / ".cache/quickshell/waybar-startup.log"
+
+KNOWN_TERMINALS = [
+    "kitty",
+    "alacritty",
+    "foot",
+    "wezterm",
+    "konsole",
+    "gnome-terminal",
+    "xfce4-terminal",
+    "xterm",
+    "tilix",
+    "cool-retro-term",
+    "st",
+]
+
+GPU_PRESET_ENV = {
+    "auto": [],
+    "nvidia": [
+        "env = LIBVA_DRIVER_NAME,nvidia",
+        "env = __GLX_VENDOR_LIBRARY_NAME,nvidia",
+        "env = NVD_BACKEND,direct",
+    ],
+    "amd": [
+        "env = LIBVA_DRIVER_NAME,amdgpu",
+        "env = VDPAU_DRIVER,va_gl",
+    ],
+    "intel": [
+        "env = LIBVA_DRIVER_NAME,iHD",
+        "env = VDPAU_DRIVER,va_gl",
+    ],
+    "other": [
+        "env = LIBVA_DRIVER_NAME,",
+        "env = VDPAU_DRIVER,",
+    ],
+}
+
+THEME_MODE_PATH = HOME / ".cache/.theme_mode"
 
 _LAST_WAYBAR_LOG_POS = 0
 _LAST_WAYBAR_STYLE = ""
@@ -272,28 +314,375 @@ def apply_power_profile():
     if POWER_SCRIPT.exists():
         _run([str(POWER_SCRIPT)])
 
-def apply_optimization(enabled: bool):
-    if enabled:
-        batch = "keyword animations:enabled 0;keyword decoration:blur:enabled 0;keyword decoration:shadow:enabled 0;keyword decoration:dim_inactive 0;keyword decoration:active_opacity 1.0;keyword decoration:inactive_opacity 1.0;keyword general:gaps_in 0;keyword general:gaps_out 0;keyword general:border_size 1;keyword decoration:rounding 0;keyword misc:vfr 0;keyword misc:vrr 2"
-    else:
-        batch = "keyword animations:enabled 1;keyword decoration:blur:enabled 1;keyword decoration:shadow:enabled 1;keyword decoration:dim_inactive 1;keyword decoration:active_opacity 1.0;keyword decoration:inactive_opacity 0.9;keyword general:gaps_in 2;keyword general:gaps_out 4;keyword general:border_size 2;keyword decoration:rounding 10;keyword misc:vfr 1;keyword misc:vrr 0"
+def _visual_toggles_from_config(config: dict) -> dict:
+    return {
+        "disableBorders": bool(get_nested(config, ["optimization", "toggles", "disableBorders"], False)),
+        "disableTransparency": bool(get_nested(config, ["optimization", "toggles", "disableTransparency"], False)),
+        "disableAnimations": bool(get_nested(config, ["optimization", "toggles", "disableAnimations"], False)),
+        "disableBlur": bool(get_nested(config, ["optimization", "toggles", "disableBlur"], False)),
+        "disableShadows": bool(get_nested(config, ["optimization", "toggles", "disableShadows"], False)),
+        "disableRounding": bool(get_nested(config, ["optimization", "toggles", "disableRounding"], False)),
+        "disableGaps": bool(get_nested(config, ["optimization", "toggles", "disableGaps"], False)),
+        "disableDimInactive": bool(get_nested(config, ["optimization", "toggles", "disableDimInactive"], False)),
+    }
+
+
+def apply_visual_toggles(config: dict):
+    toggles = _visual_toggles_from_config(config)
+
+    animations_enabled = 0 if toggles["disableAnimations"] else 1
+    blur_enabled = 0 if toggles["disableBlur"] else 1
+    shadow_enabled = 0 if toggles["disableShadows"] else 1
+    dim_inactive = 0 if toggles["disableDimInactive"] else 1
+    inactive_opacity = 1.0 if toggles["disableTransparency"] else 0.9
+    gaps_in = 0 if toggles["disableGaps"] else 2
+    gaps_out = 0 if toggles["disableGaps"] else 4
+    border_size = 0 if toggles["disableBorders"] else 2
+    rounding = 0 if toggles["disableRounding"] else 10
+
+    batch = (
+        f"keyword animations:enabled {animations_enabled};"
+        f"keyword decoration:blur:enabled {blur_enabled};"
+        f"keyword decoration:shadow:enabled {shadow_enabled};"
+        f"keyword decoration:dim_inactive {dim_inactive};"
+        "keyword decoration:active_opacity 1.0;"
+        f"keyword decoration:inactive_opacity {inactive_opacity};"
+        f"keyword general:gaps_in {gaps_in};"
+        f"keyword general:gaps_out {gaps_out};"
+        f"keyword general:border_size {border_size};"
+        f"keyword decoration:rounding {rounding}"
+    )
     _run(["hyprctl", "--batch", batch])
+
+
+def _snapshot_component_state(config: dict) -> dict:
+    return {
+        "barEnabled": bool(get_nested(config, ["components", "bar", "enabled"], True)),
+        "appLauncher": bool(get_nested(config, ["components", "appLauncher"], True)),
+        "windowSwitcher": bool(get_nested(config, ["components", "windowSwitcher"], True)),
+        "notifications": bool(get_nested(config, ["components", "notifications"], True)),
+        "lockscreen": bool(get_nested(config, ["components", "lockscreen"], False)),
+        "smartHome": bool(get_nested(config, ["components", "smartHome"], False)),
+        "powerMenu": bool(get_nested(config, ["components", "powerMenu", "enabled"], True)),
+        "wallpaperSelector": bool(get_nested(config, ["components", "wallpaperSelector", "enabled"], True)),
+    }
+
+
+def _apply_optimization_component_mode(config: dict, enabled: bool) -> bool:
+    changed = False
+    saved_state = get_nested(config, ["optimization", "restoreState"], None)
+
+    if enabled:
+        if not isinstance(saved_state, dict):
+            set_nested(config, ["optimization", "restoreState"], _snapshot_component_state(config))
+            changed = True
+
+        desired = {
+            ("components", "bar", "enabled"): False,
+            ("components", "appLauncher"): False,
+            ("components", "windowSwitcher"): False,
+            ("components", "notifications"): False,
+            ("components", "lockscreen"): False,
+            ("components", "smartHome"): False,
+            ("components", "powerMenu", "enabled"): False,
+            ("components", "wallpaperSelector", "enabled"): True,
+        }
+        for key_path, value in desired.items():
+            current = get_nested(config, list(key_path), None)
+            if current != value:
+                set_nested(config, list(key_path), value)
+                changed = True
+        return changed
+
+    if isinstance(saved_state, dict):
+        restore_map = {
+            ("components", "bar", "enabled"): bool(saved_state.get("barEnabled", True)),
+            ("components", "appLauncher"): bool(saved_state.get("appLauncher", True)),
+            ("components", "windowSwitcher"): bool(saved_state.get("windowSwitcher", True)),
+            ("components", "notifications"): bool(saved_state.get("notifications", True)),
+            ("components", "lockscreen"): bool(saved_state.get("lockscreen", False)),
+            ("components", "smartHome"): bool(saved_state.get("smartHome", False)),
+            ("components", "powerMenu", "enabled"): bool(saved_state.get("powerMenu", True)),
+            ("components", "wallpaperSelector", "enabled"): bool(saved_state.get("wallpaperSelector", True)),
+        }
+        for key_path, value in restore_map.items():
+            current = get_nested(config, list(key_path), None)
+            if current != value:
+                set_nested(config, list(key_path), value)
+                changed = True
+        set_nested(config, ["optimization", "restoreState"], None)
+        changed = True
+
+    return changed
+
 
 def apply_hypr_reload():
     _run(["hyprctl", "reload"])
+
+def _replace_timeout_in_listener_block(block: str, seconds: int) -> str:
+    return re.sub(
+        r'(?m)^(\s*timeout\s*=\s*)\d+(\s*(?:#.*)?)$',
+        rf'\g<1>{int(seconds)}\2',
+        block,
+        count=1,
+    )
+
+def sync_hypridle_conf(warn_seconds: int, lock_seconds: int, ignore_dbus_inhibit: bool) -> bool:
+    if not HYPRIDLE_CONF_PATH.exists():
+        return False
+
+    text = HYPRIDLE_CONF_PATH.read_text()
+    changed = False
+
+    listener_re = re.compile(r'(?ms)^\s*listener\s*\{.*?^\s*\}')
+    state = {"warn": False, "lock": False}
+
+    def repl(match):
+        nonlocal changed
+        block = match.group(0)
+        lowered = block.lower()
+
+        if ("on-timeout" in lowered and "notify-send" in lowered and not state["warn"]):
+            state["warn"] = True
+            new_block = _replace_timeout_in_listener_block(block, warn_seconds)
+            if new_block != block:
+                changed = True
+            return new_block
+
+        if ("on-timeout" in lowered and "loginctl lock-session" in lowered and not state["lock"]):
+            state["lock"] = True
+            new_block = _replace_timeout_in_listener_block(block, lock_seconds)
+            if new_block != block:
+                changed = True
+            return new_block
+
+        return block
+
+    text_after_listeners = listener_re.sub(repl, text)
+
+    ignore_re = re.compile(r'(?m)^(\s*ignore_dbus_inhibit\s*=\s*)(true|false)(\s*(?:#.*)?)$')
+    ignore_value = "true" if ignore_dbus_inhibit else "false"
+    text_after_ignore, ignore_count = ignore_re.subn(rf'\1{ignore_value}\3', text_after_listeners, count=1)
+    if ignore_count > 0 and text_after_ignore != text_after_listeners:
+        changed = True
+
+    if changed:
+        HYPRIDLE_CONF_PATH.write_text(text_after_ignore)
+
+    return changed
+
+def apply_hypridle_enabled(enabled: bool):
+    _run_wait("pkill -x hypridle || true", shell=True)
+    if enabled:
+        _run(["hypridle"])
+
+def _read_text(path: Path) -> str:
+    try:
+        return path.read_text()
+    except Exception:
+        return ""
+
+def _write_text(path: Path, text: str):
+    path.write_text(text if text.endswith("\n") else text + "\n")
+
+def _detect_terminals() -> list[str]:
+    detected = []
+    for terminal in KNOWN_TERMINALS:
+        if subprocess.run(["bash", "-lc", f"command -v {terminal} >/dev/null 2>&1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+            detected.append(terminal)
+    if "kitty" not in detected:
+        detected.insert(0, "kitty")
+    return detected
+
+def _sync_userdefaults_terminal(terminal: str) -> bool:
+    text = _read_text(USER_DEFAULTS_PATH)
+    if not text:
+        return False
+    current = _read_userdefaults_terminal()
+    if current == terminal:
+        return False
+    new_text, count = re.subn(r'(?m)^(\$term\s*=\s*).*$' , rf'\1{terminal}', text, count=1)
+    if count:
+        _write_text(USER_DEFAULTS_PATH, new_text)
+        return True
+    return False
+
+def _read_userdefaults_terminal() -> str:
+    text = _read_text(USER_DEFAULTS_PATH)
+    match = re.search(r'(?m)^\$term\s*=\s*(.+?)\s*$', text)
+    return match.group(1).strip() if match else "kitty"
+
+def _read_compositor() -> str:
+    value = get_nested(load_json(CONFIG_PATH), ["compositor"], "hyprland")
+    return str(value or "hyprland")
+
+def _read_theme_mode() -> str:
+    try:
+        value = THEME_MODE_PATH.read_text().strip().lower()
+        return value if value in {"dark", "light"} else "dark"
+    except Exception:
+        return "dark"
+
+def _sync_theme_mode(mode: str) -> bool:
+    mode = (mode or "dark").strip().lower()
+    if mode not in {"dark", "light"}:
+        mode = "dark"
+    current = _read_theme_mode()
+    THEME_MODE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if current == mode:
+        THEME_MODE_PATH.write_text(mode + "\n")
+        return False
+    opposite = "light" if mode == "dark" else "dark"
+    THEME_MODE_PATH.write_text(opposite + "\n")
+    script = HOME / ".config/hypr/scripts/DarkLight.sh"
+    if script.exists():
+        _run([str(script)])
+        return True
+    THEME_MODE_PATH.write_text(mode + "\n")
+    return False
+
+def _read_gpu_vendor() -> str:
+    text = _read_text(ENV_VARIABLES_PATH).lower()
+    if "nvidia" in text:
+        return "nvidia"
+    if "amdgpu" in text or "amd" in text:
+        return "amd"
+    if "iHD".lower() in text or "intel" in text:
+        return "intel"
+    return "auto"
+
+def _sync_envariables_gpu(vendor: str) -> bool:
+    text = _read_text(ENV_VARIABLES_PATH)
+    if not text:
+        return False
+    if _read_gpu_vendor() == vendor:
+        return False
+
+    lines = text.splitlines()
+    preserved = []
+    for line in lines:
+        if any(key in line for key in ["LIBVA_DRIVER_NAME", "__GLX_VENDOR_LIBRARY_NAME", "NVD_BACKEND", "VDPAU_DRIVER", "GBM_BACKEND", "WLR_RENDERER_ALLOW_SOFTWARE"]):
+            continue
+        preserved.append(line)
+
+    additions = GPU_PRESET_ENV.get(vendor, GPU_PRESET_ENV["auto"])
+    if additions:
+        preserved.append("")
+        preserved.extend(additions)
+
+    _write_text(ENV_VARIABLES_PATH, "\n".join(preserved))
+    return True
+
+def _parse_startup_apps() -> list[dict]:
+    text = _read_text(STARTUP_APPS_PATH)
+    apps = []
+    system_tokens = [
+        "dbus-update-activation-environment",
+        "systemctl --user import-environment",
+        "xdg-desktop-portal-hyprland",
+        "xdg-desktop-portal-gtk",
+        "Polkit.sh",
+        "PortalRestart.sh",
+        "StartQuickshell.sh",
+        "PowerProfileAuto.sh",
+        "waybar",
+        "hypridle",
+        "wl-paste",
+        "pkill firefox",
+    ]
+    for idx, line in enumerate(text.splitlines()):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if not stripped.startswith("exec-once"):
+            continue
+        cmd = stripped.split("=", 1)[1].strip() if "=" in stripped else ""
+        if not cmd:
+            continue
+        is_system = any(token in cmd for token in system_tokens)
+        apps.append({"index": idx, "cmd": cmd, "enabled": True, "system": is_system})
+    return apps
+
+def _sync_startup_apps(apps: list[dict]) -> bool:
+    text = _read_text(STARTUP_APPS_PATH)
+    if not text:
+        return False
+    out_lines = text.splitlines()
+    changed = False
+    for app in apps:
+        idx = app.get("index")
+        if idx is None or idx < 0 or idx >= len(out_lines):
+            continue
+        prefix = "" if app.get("enabled", True) else "# "
+        new_line = f"{prefix}exec-once = {app['cmd']}"
+        if out_lines[idx] != new_line:
+            out_lines[idx] = new_line
+            changed = True
+    if changed:
+        _write_text(STARTUP_APPS_PATH, "\n".join(out_lines))
+    return changed
+
+def _parse_workspace_rules() -> list[dict]:
+    text = _read_text(WINDOW_RULES_PATH)
+    rules = []
+    for idx, line in enumerate(text.splitlines()):
+        stripped = line.strip()
+        if not stripped.startswith("windowrule"):
+            continue
+        if "workspace" not in stripped or "match:class" not in stripped and "match:tag" not in stripped:
+            continue
+        match = re.search(r'workspace\s+([^,\s]+)(?:\s+(silent))?,\s*match:(?:class|tag)\s+(.+)$', stripped)
+        if not match:
+            continue
+        workspace = match.group(1).strip()
+        modifier = match.group(2).strip() if match.group(2) else ""
+        selector = match.group(3).strip()
+        rules.append({"index": idx, "workspace": workspace, "modifier": modifier, "selector": selector, "line": line})
+    return rules
+
+def _sync_workspace_rules(rules: list[dict]) -> bool:
+    text = _read_text(WINDOW_RULES_PATH)
+    if not text:
+        return False
+    out_lines = text.splitlines()
+    changed = False
+    for rule in rules:
+        idx = rule.get("index")
+        if idx is None or idx < 0 or idx >= len(out_lines):
+            continue
+        line = out_lines[idx]
+        workspace = str(rule.get("workspace", "1")).strip() or "1"
+        modifier = str(rule.get("modifier", "")).strip()
+        selector = str(rule.get("selector", "")).strip()
+        if not selector:
+            continue
+        if "match:tag" in line:
+            suffix = f" {modifier}" if modifier else ""
+            new_line = re.sub(r'workspace\s+[^,]+,\s*match:tag\s+.+$', f'workspace {workspace}{suffix}, match:tag {selector}', line)
+        else:
+            suffix = f" {modifier}" if modifier else ""
+            new_line = re.sub(r'workspace\s+[^,]+,\s*match:class\s+.+$', f'workspace {workspace}{suffix}, match:class {selector}', line)
+        if new_line != line:
+            out_lines[idx] = new_line
+            changed = True
+    if changed:
+        _write_text(WINDOW_RULES_PATH, "\n".join(out_lines))
+    return changed
 
 
 # ── Window ────────────────────────────────────────────────────────────────────
 
 PAGES = [
     ("General",      "preferences-system-symbolic"),
-    ("Bar",          "view-sidebar-start-symbolic"),
+    ("Screen",       "video-display-symbolic"),
     ("Components",   "view-app-grid-symbolic"),
     ("Power",        "battery-symbolic"),
-    ("Wallpaper",    "image-x-generic-symbolic"),
+    ("Hypridle",     "preferences-system-time-symbolic"),
     ("Integrations", "applications-engineering-symbolic"),
     ("Apps",         "applications-symbolic"),
     ("Intervals",    "preferences-system-time-symbolic"),
+    ("Startup Apps", "system-run-symbolic"),
+    ("Window Rules", "window-symbolic"),
     ("Keybinds",     "input-keyboard-symbolic"),
 ]
 
@@ -305,14 +694,33 @@ class ConfigWindow(Adw.ApplicationWindow):
         self.set_size_request(760, 520)
         self.set_title("SdrxDots Settings")
         self.set_icon_name("preferences-system-symbolic")
+        self.add_css_class("config-panel")
 
         self._config = load_json(CONFIG_PATH)
+        if get_nested(self._config, ["hypridle", "enabled"], None) is None:
+            set_nested(self._config, ["hypridle", "enabled"], True)
+        if get_nested(self._config, ["hypridle", "warnMinutes"], None) is None:
+            set_nested(self._config, ["hypridle", "warnMinutes"], 9)
+        if get_nested(self._config, ["hypridle", "lockMinutes"], None) is None:
+            set_nested(self._config, ["hypridle", "lockMinutes"], 10)
+        if get_nested(self._config, ["hypridle", "ignoreDbusInhibit"], None) is None:
+            set_nested(self._config, ["hypridle", "ignoreDbusInhibit"], False)
+        if get_nested(self._config, ["appearance", "colorMode"], None) is None:
+            set_nested(self._config, ["appearance", "colorMode"], _read_theme_mode())
         self._apps   = load_json(APPS_PATH)
         self._defaults_config = deepcopy(self._config)
         self._defaults_apps   = deepcopy(self._apps)
         self._saved_config    = deepcopy(self._config)
         self._saved_apps      = deepcopy(self._apps)
         self._unsaved = False
+
+        self._selected_terminal = _read_userdefaults_terminal()
+        self._selected_compositor = _read_compositor()
+        self._selected_gpu_vendor = _read_gpu_vendor()
+        self._selected_color_mode = str(get_nested(self._config, ["appearance", "colorMode"], _read_theme_mode()) or "dark")
+        self._startup_apps = _parse_startup_apps()
+        self._startup_show_system = False
+        self._workspace_rules = _parse_workspace_rules()
 
         self._keybinds_system_lines: list[str] = []
         self._keybinds_user_lines:   list[str] = []
@@ -321,10 +729,12 @@ class ConfigWindow(Adw.ApplicationWindow):
         self._external_conflict_paths: list[str] = []
         self._suppress_external_reload_until = 0.0
         self._file_mtimes: dict[str, float | None] = {}
+        self._built_pages: set[str] = set()
         self._load_keybinds()
 
         self._build_ui()
         self._install_css()
+        self._apply_color_mode_style()
         self._setup_file_monitor()
         self._setup_shortcuts()
         self._update_title()
@@ -383,21 +793,23 @@ class ConfigWindow(Adw.ApplicationWindow):
 
         self._page_builders = [
             self._build_general_page,
-            self._build_bar_page,
+            self._build_screen_page,
             self._build_components_page,
             self._build_power_page,
-            self._build_wallpaper_page,
+            self._build_hypridle_page,
             self._build_integrations_page,
             self._build_apps_page,
             self._build_intervals_page,
+            self._build_startup_apps_page,
+            self._build_window_rules_page,
             self._build_keybinds_page,
         ]
-        for i, (name, _icon) in enumerate(PAGES):
-            page_widget = self._page_builders[i]()
-            scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
-            scroll.set_child(page_widget)
-            scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-            self._stack.add_named(scroll, name.lower())
+
+        # Build pages lazily to keep startup responsive.
+        self._page_builder_map = {
+            name.lower(): self._page_builders[i]
+            for i, (name, _icon) in enumerate(PAGES)
+        }
 
         split.set_content(self._stack)
         toolbar_view.set_content(split)
@@ -405,9 +817,24 @@ class ConfigWindow(Adw.ApplicationWindow):
         self._toast_overlay = Adw.ToastOverlay()
         self._toast_overlay.set_child(toolbar_view)
         self.set_content(self._toast_overlay)
+        first_page = PAGES[0][0].lower()
+        self._ensure_page(first_page)
         self._nav_list.select_row(self._nav_list.get_row_at_index(0))
         self._banner.set_revealed(False)
         self._reload_banner.set_revealed(False)
+
+    def _ensure_page(self, page_name: str):
+        if page_name in self._built_pages:
+            return
+        builder = self._page_builder_map.get(page_name)
+        if builder is None:
+            return
+        page_widget = builder()
+        scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
+        scroll.set_child(page_widget)
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self._stack.add_named(scroll, page_name)
+        self._built_pages.add(page_name)
 
     def _build_sidebar(self) -> Gtk.Widget:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -455,7 +882,9 @@ class ConfigWindow(Adw.ApplicationWindow):
             return
         idx = row.get_index()
         if 0 <= idx < len(PAGES):
-            self._stack.set_visible_child_name(PAGES[idx][0].lower())
+            page_name = PAGES[idx][0].lower()
+            self._ensure_page(page_name)
+            self._stack.set_visible_child_name(page_name)
 
     def _on_global_search(self, entry):
         query = entry.get_text().strip().lower()
@@ -484,6 +913,14 @@ class ConfigWindow(Adw.ApplicationWindow):
         self._banner.set_revealed(False)
         self._update_title()
 
+    def _apply_color_mode_style(self):
+        self.remove_css_class("system-dark")
+        self.remove_css_class("system-light")
+        if (self._selected_color_mode or "dark").strip().lower() == "light":
+            self.add_css_class("system-light")
+        else:
+            self.add_css_class("system-dark")
+
     # ── Keyboard shortcuts ────────────────────────────────────────────────────
 
     def _setup_shortcuts(self):
@@ -497,6 +934,14 @@ class ConfigWindow(Adw.ApplicationWindow):
                 action=Gtk.CallbackAction.new(lambda *_: self._on_save(None) or True),
             )
             ctrl.add_shortcut(save_sc)
+
+        esc_trigger = Gtk.ShortcutTrigger.parse_string("Escape")
+        if esc_trigger is not None:
+            close_sc = Gtk.Shortcut(
+                trigger=esc_trigger,
+                action=Gtk.CallbackAction.new(lambda *_: self.close() or True),
+            )
+            ctrl.add_shortcut(close_sc)
         self.add_controller(ctrl)
 
     # ── File monitor ──────────────────────────────────────────────────────────
@@ -511,6 +956,11 @@ class ConfigWindow(Adw.ApplicationWindow):
             "apps.json": APPS_PATH,
             "Keybinds.conf": KEYBINDS_SYSTEM_PATH,
             "UserKeybinds.conf": KEYBINDS_USER_PATH,
+            "01-UserDefaults.conf": USER_DEFAULTS_PATH,
+            "ENVariables.conf": ENV_VARIABLES_PATH,
+            "Startup_Apps.conf": STARTUP_APPS_PATH,
+            "WindowRules.conf": WINDOW_RULES_PATH,
+            "hypridle.conf": HYPRIDLE_CONF_PATH,
         }
 
     def _mtime(self, path: Path) -> float | None:
@@ -549,6 +999,13 @@ class ConfigWindow(Adw.ApplicationWindow):
         self._config = load_json(CONFIG_PATH)
         self._apps = load_json(APPS_PATH)
         self._load_keybinds()
+        self._selected_terminal = _read_userdefaults_terminal()
+        self._selected_compositor = _read_compositor()
+        self._selected_gpu_vendor = _read_gpu_vendor()
+        self._selected_color_mode = str(get_nested(self._config, ["appearance", "colorMode"], _read_theme_mode()) or "dark")
+        self._startup_apps = _parse_startup_apps()
+        self._workspace_rules = _parse_workspace_rules()
+        self._apply_color_mode_style()
         self._saved_config = deepcopy(self._config)
         self._saved_apps = deepcopy(self._apps)
         self._mark_saved()
@@ -566,7 +1023,15 @@ class ConfigWindow(Adw.ApplicationWindow):
         prev_sty_raw = get_nested(self._saved_config, ["components", "bar", "waybarStyle"], "~/.config/waybar/style.css")
         prev_pow_t  = get_nested(self._saved_config, ["power", "deviceType"], "auto")
         prev_pow_p  = get_nested(self._saved_config, ["power", "profile"], "performance")
-        prev_opt    = get_nested(self._saved_config, ["optimization", "enabled"], False)
+        prev_opt    = bool(get_nested(self._saved_config, ["optimization", "enabled"], False))
+        prev_visual_toggles = _visual_toggles_from_config(self._saved_config)
+        prev_idle_enabled = bool(get_nested(self._saved_config, ["hypridle", "enabled"], True))
+        prev_idle_warn = int(get_nested(self._saved_config, ["hypridle", "warnMinutes"], 9) or 9)
+        prev_idle_lock = int(get_nested(self._saved_config, ["hypridle", "lockMinutes"], 10) or 10)
+        prev_idle_ignore = bool(get_nested(self._saved_config, ["hypridle", "ignoreDbusInhibit"], False))
+
+        cur_opt_enabled = bool(get_nested(self._config, ["optimization", "enabled"], False))
+        _apply_optimization_component_mode(self._config, cur_opt_enabled)
 
         self._normalize_apps_data()
         save_json(CONFIG_PATH, self._config)
@@ -618,9 +1083,58 @@ class ConfigWindow(Adw.ApplicationWindow):
                 get_nested(self._config, ["power", "profile"], "performance") != prev_pow_p):
             apply_power_profile()
 
-        cur_opt = get_nested(self._config, ["optimization", "enabled"], False)
-        if cur_opt != prev_opt:
-            apply_optimization(cur_opt)
+        cur_opt = bool(get_nested(self._config, ["optimization", "enabled"], False))
+        cur_visual_toggles = _visual_toggles_from_config(self._config)
+        if cur_visual_toggles != prev_visual_toggles:
+            apply_visual_toggles(self._config)
+
+        if cur_opt != prev_opt and cur_opt:
+                self._toast("Optimization mode active: only wallpapers remain enabled")
+
+        if _sync_userdefaults_terminal(self._selected_terminal):
+            self._toast(f"Terminal set to {self._selected_terminal}")
+
+        if _sync_envariables_gpu(self._selected_gpu_vendor):
+            self._toast(f"GPU preset set to {self._selected_gpu_vendor}")
+
+        if _sync_theme_mode(self._selected_color_mode):
+            self._toast(f"System color mode set to {self._selected_color_mode}")
+        self._apply_color_mode_style()
+
+        if self._startup_apps:
+            _sync_startup_apps(self._startup_apps)
+
+        workspace_rules_changed = False
+        if self._workspace_rules:
+            workspace_rules_changed = _sync_workspace_rules(self._workspace_rules)
+        if workspace_rules_changed:
+            apply_hypr_reload()
+
+        cur_idle_enabled = bool(get_nested(self._config, ["hypridle", "enabled"], True))
+        cur_idle_warn = max(1, int(get_nested(self._config, ["hypridle", "warnMinutes"], 9) or 9))
+        cur_idle_lock = max(1, int(get_nested(self._config, ["hypridle", "lockMinutes"], 10) or 10))
+        cur_idle_ignore = bool(get_nested(self._config, ["hypridle", "ignoreDbusInhibit"], False))
+
+        if cur_idle_warn >= cur_idle_lock:
+            cur_idle_lock = cur_idle_warn + 1
+            set_nested(self._config, ["hypridle", "lockMinutes"], cur_idle_lock)
+            save_json(CONFIG_PATH, self._config)
+            self._toast("Hypridle lock timeout adjusted to stay after warning")
+
+        idle_changed = (
+            cur_idle_enabled != prev_idle_enabled
+            or cur_idle_warn != prev_idle_warn
+            or cur_idle_lock != prev_idle_lock
+            or cur_idle_ignore != prev_idle_ignore
+        )
+
+        if idle_changed:
+            sync_hypridle_conf(
+                warn_seconds=cur_idle_warn * 60,
+                lock_seconds=cur_idle_lock * 60,
+                ignore_dbus_inhibit=cur_idle_ignore,
+            )
+            apply_hypridle_enabled(cur_idle_enabled)
 
         if self._keybinds_all != self._keybinds_saved:
             sys_binds = [b for b in self._keybinds_all if b["source"] == "SYSTEM"]
@@ -643,6 +1157,13 @@ class ConfigWindow(Adw.ApplicationWindow):
         self._config = deepcopy(self._saved_config)
         self._apps   = deepcopy(self._saved_apps)
         self._keybinds_all = deepcopy(self._keybinds_saved)
+        self._selected_terminal = _read_userdefaults_terminal()
+        self._selected_compositor = _read_compositor()
+        self._selected_gpu_vendor = _read_gpu_vendor()
+        self._selected_color_mode = str(get_nested(self._config, ["appearance", "colorMode"], _read_theme_mode()) or "dark")
+        self._startup_apps = _parse_startup_apps()
+        self._workspace_rules = _parse_workspace_rules()
+        self._apply_color_mode_style()
         self._mark_saved()
         self._reload_banner.set_revealed(False)
         self._external_conflict_paths = []
@@ -651,6 +1172,14 @@ class ConfigWindow(Adw.ApplicationWindow):
     def _on_defaults(self, _widget):
         self._config = deepcopy(self._defaults_config)
         self._apps   = deepcopy(self._defaults_apps)
+        self._selected_terminal = _read_userdefaults_terminal()
+        self._selected_compositor = _read_compositor()
+        self._selected_gpu_vendor = _read_gpu_vendor()
+        self._selected_color_mode = str(get_nested(self._config, ["appearance", "colorMode"], _read_theme_mode()) or "dark")
+        self._startup_apps = _parse_startup_apps()
+        self._workspace_rules = _parse_workspace_rules()
+        self._apply_color_mode_style()
+        self._apply_color_mode_style()
         self._mark_unsaved()
         self._refresh_pages()
 
@@ -665,6 +1194,47 @@ class ConfigWindow(Adw.ApplicationWindow):
 
     def _install_css(self):
         css = b"""
+        window.config-panel.system-dark {
+            background: #1b1b1f;
+            color: #e3e3e7;
+        }
+
+        window.config-panel.system-light {
+            background: @view_bg_color;
+            color: @view_fg_color;
+        }
+
+        window.config-panel.system-dark .navigation-sidebar {
+            background: #232329;
+            border-right: 1px solid #2e2f36;
+        }
+
+        window.config-panel.system-light .navigation-sidebar {
+            border-right: 1px solid alpha(@view_fg_color, 0.10);
+        }
+
+        window.config-panel.system-dark preferencespage,
+        window.config-panel.system-dark preferencesgroup,
+        window.config-panel.system-dark preferencesgroup > box,
+        window.config-panel.system-dark list,
+        window.config-panel.system-dark row,
+        window.config-panel.system-dark entry,
+        window.config-panel.system-dark textview {
+            background: #202126;
+            color: #e3e3e7;
+            border-color: #32333a;
+        }
+
+        window.config-panel.system-dark row:hover,
+        window.config-panel.system-dark .navigation-sidebar row:hover {
+            background: #2a2b33;
+        }
+
+        window.config-panel.system-dark .navigation-sidebar row:selected {
+            background: #323441;
+            color: #f2f2f4;
+        }
+
         .navigation-sidebar {
             border-right: 1px solid alpha(@window_fg_color, 0.08);
         }
@@ -690,20 +1260,15 @@ class ConfigWindow(Adw.ApplicationWindow):
                 app_data["tags"] = [t.strip() for t in tags.split(",") if t.strip()]
 
     def _refresh_pages(self):
-        current = self._stack.get_visible_child_name()
-        # Remove all pages and rebuild
+        current = self._stack.get_visible_child_name() or PAGES[0][0].lower()
+        # Remove all pages and invalidate cache; current page is rebuilt lazily.
         for name, _ in PAGES:
             child = self._stack.get_child_by_name(name.lower())
             if child:
                 self._stack.remove(child)
-        for i, (name, _icon) in enumerate(PAGES):
-            page_widget = self._page_builders[i]()
-            scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
-            scroll.set_child(page_widget)
-            scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-            self._stack.add_named(scroll, name.lower())
-        if current:
-            self._stack.set_visible_child_name(current)
+        self._built_pages.clear()
+        self._ensure_page(current)
+        self._stack.set_visible_child_name(current)
 
     # ── Keybinds ──────────────────────────────────────────────────────────────
 
@@ -949,19 +1514,113 @@ class ConfigWindow(Adw.ApplicationWindow):
             group.add(row)
         return group
 
+    def _info_row(self, title: str, subtitle: str) -> Adw.ActionRow:
+        row = Adw.ActionRow(title=title)
+        row.set_subtitle(subtitle)
+        row.set_activatable(False)
+        return row
+
     def _page(self, groups: list[Adw.PreferencesGroup]) -> Adw.PreferencesPage:
         page = Adw.PreferencesPage()
         for g in groups:
             page.add(g)
         return page
 
+    def _terminal_row(self) -> Adw.ComboRow:
+        choices = _detect_terminals()
+        current = self._selected_terminal
+        if current not in choices:
+            choices = [current] + choices
+
+        def on_change(choice: str):
+            self._selected_terminal = choice
+
+        return self._combo_row_direct(
+            "Terminal",
+            choices,
+            current,
+            on_change,
+            subtitle="Writes to ~/.config/hypr/UserConfigs/01-UserDefaults.conf for Super+Enter",
+        )
+
+    def _gpu_vendor_row(self) -> Adw.ComboRow:
+        choices = ["auto", "nvidia", "amd", "intel", "other"]
+
+        def on_change(choice: str):
+            self._selected_gpu_vendor = choice
+
+        return self._combo_row_direct(
+            "GPU vendor",
+            choices,
+            self._selected_gpu_vendor if self._selected_gpu_vendor in choices else "auto",
+            on_change,
+            subtitle="Writes environment presets to ~/.config/hypr/UserConfigs/ENVariables.conf",
+        )
+
+    def _color_mode_row(self) -> Adw.ComboRow:
+        choices = ["dark", "light"]
+
+        def on_change(choice: str):
+            self._selected_color_mode = choice
+            set_nested(self._config, ["appearance", "colorMode"], choice)
+            self._apply_color_mode_style()
+
+        return self._combo_row_direct(
+            "System colors",
+            choices,
+            self._selected_color_mode if self._selected_color_mode in choices else _read_theme_mode(),
+            on_change,
+            subtitle="Applies the global light/dark system palette",
+        )
+
+    def _startup_label(self, cmd: str) -> str:
+        first = cmd.split()[0] if cmd.split() else cmd
+        return Path(first).name or cmd
+
+    def _startup_switch_row(self, app: dict) -> Adw.SwitchRow:
+        title = self._startup_label(app.get("cmd", ""))
+        row = Adw.SwitchRow(title=title)
+        row.set_active(bool(app.get("enabled", True)))
+        subtitle = app.get("cmd", "")
+        if app.get("system"):
+            subtitle = f"System entry: {subtitle}"
+        row.set_subtitle(subtitle)
+
+        def on_toggle(r, _p, item=app):
+            item["enabled"] = r.get_active()
+            self._mark_unsaved()
+
+        row.connect("notify::active", on_toggle)
+        return row
+
+    def _workspace_choices(self, current: str = "") -> list[str]:
+        base = [str(i) for i in range(1, 11)]
+        if current and current not in base:
+            return [current] + base
+        return base
+
+    def _workspace_rule_row(self, rule: dict) -> Adw.ComboRow:
+        current = str(rule.get("workspace", "1") or "1")
+
+        def on_change(choice: str, item=rule):
+            item["workspace"] = choice
+
+        return self._combo_row_direct(
+            rule.get("selector", "Window rule"),
+            self._workspace_choices(current),
+            current,
+            on_change,
+            subtitle=f"match:{'tag' if 'match:tag' in rule.get('line', '') else 'class'} {rule.get('selector', '')}",
+        )
+
     # ── Pages ─────────────────────────────────────────────────────────────────
 
     def _build_general_page(self) -> Adw.PreferencesPage:
         return self._page([
             self._group("System", [
-                self._entry_row("Compositor", ["compositor"]),
-                self._entry_row("Terminal",   ["terminal"]),
+                self._info_row("Compositor", f"Read-only: {self._selected_compositor}"),
+                self._terminal_row(),
+                self._gpu_vendor_row(),
                 self._entry_row("Monitor",    ["monitor"]),
             ]),
             self._group("Paths", [
@@ -984,11 +1643,27 @@ class ConfigWindow(Adw.ApplicationWindow):
             ]),
             self._group("Performance", [
                 self._switch_row("Optimization mode", ["optimization", "enabled"],
-                                 subtitle="Disables animations, blur, and shadows"),
+                                 subtitle="Maximum optimization: disables most shell components except wallpapers"),
+                self._switch_row("Disable borders", ["optimization", "toggles", "disableBorders"],
+                                 subtitle="Sets border size to 0"),
+                self._switch_row("Disable transparency", ["optimization", "toggles", "disableTransparency"],
+                                 subtitle="Forces inactive opacity to 1.0"),
+                self._switch_row("Disable animations", ["optimization", "toggles", "disableAnimations"],
+                                 subtitle="Turns off Hyprland animations"),
+                self._switch_row("Disable blur", ["optimization", "toggles", "disableBlur"],
+                                 subtitle="Disables decoration blur"),
+                self._switch_row("Disable shadows", ["optimization", "toggles", "disableShadows"],
+                                 subtitle="Disables window shadows"),
+                self._switch_row("Disable rounding", ["optimization", "toggles", "disableRounding"],
+                                 subtitle="Sets window rounding to 0"),
+                self._switch_row("Disable gaps", ["optimization", "toggles", "disableGaps"],
+                                 subtitle="Sets gaps_in and gaps_out to 0"),
+                self._switch_row("Disable dim inactive", ["optimization", "toggles", "disableDimInactive"],
+                                 subtitle="Disables inactive window dimming"),
             ]),
         ])
 
-    def _build_bar_page(self) -> Adw.PreferencesPage:
+    def _build_screen_page(self) -> Adw.PreferencesPage:
         return self._page([
             self._group("Bar", [
                 self._switch_row("Enabled", ["components", "bar", "enabled"]),
@@ -1025,6 +1700,26 @@ class ConfigWindow(Adw.ApplicationWindow):
                 self._switch_row("Visualizer top",     ["components", "bar", "music", "visualizerTop"]),
                 self._switch_row("Visualizer bottom",  ["components", "bar", "music", "visualizerBottom"]),
             ]),
+            self._group("Wallpapers", [
+                self._switch_row("Mute wallpaper audio", ["wallpaperMute"]),
+                self._combo_row("Display mode",
+                                ["components", "wallpaperSelector", "displayMode"],
+                                ["grid", "list", "hex", "slice"]),
+                self._color_mode_row(),
+                self._switch_row("Auto change",
+                                 ["components", "wallpaperSelector", "autoChangeEnabled"]),
+                self._spin_row("Auto change interval (minutes)",
+                               ["components", "wallpaperSelector", "autoChangeIntervalMinutes"],
+                               min_val=1, max_val=1440, step=5),
+                self._spin_row("Columns",
+                               ["components", "wallpaperSelector", "wallhavenColumns"],
+                               min_val=1, max_val=20),
+                self._spin_row("Rows",
+                               ["components", "wallpaperSelector", "wallhavenRows"],
+                               min_val=1, max_val=20),
+                self._entry_row("Steam Workshop",  ["paths", "steamWorkshop"]),
+                self._entry_row("Steam WE assets", ["paths", "steamWeAssets"]),
+            ], description="Display-related settings: bar and wallpapers"),
         ])
 
     def _build_components_page(self) -> Adw.PreferencesPage:
@@ -1057,31 +1752,27 @@ class ConfigWindow(Adw.ApplicationWindow):
             ]),
         ])
 
-    def _build_wallpaper_page(self) -> Adw.PreferencesPage:
+    def _build_hypridle_page(self) -> Adw.PreferencesPage:
         return self._page([
-            self._group("General", [
-                self._switch_row("Mute wallpaper audio", ["wallpaperMute"]),
+            self._group("Daemon", [
+                self._switch_row("Enabled", ["hypridle", "enabled"],
+                                 subtitle="Start or stop hypridle when saving settings"),
+                self._switch_row("Ignore DBus inhibit", ["hypridle", "ignoreDbusInhibit"],
+                                 subtitle="Maps to ignore_dbus_inhibit in hypridle.conf"),
             ]),
-            self._group("Selector", [
-                self._combo_row("Display mode",
-                                ["components", "wallpaperSelector", "displayMode"],
-                                ["grid", "list", "hex", "slice"]),
-                self._switch_row("Auto change",
-                                 ["components", "wallpaperSelector", "autoChangeEnabled"]),
-                self._spin_row("Auto change interval (minutes)",
-                               ["components", "wallpaperSelector", "autoChangeIntervalMinutes"],
-                               min_val=1, max_val=1440, step=5),
-                self._spin_row("Columns",
-                               ["components", "wallpaperSelector", "wallhavenColumns"],
-                               min_val=1, max_val=20),
-                self._spin_row("Rows",
-                               ["components", "wallpaperSelector", "wallhavenRows"],
-                               min_val=1, max_val=20),
+            self._group("Timeouts", [
+                self._spin_row("Warn timeout (minutes)",
+                               ["hypridle", "warnMinutes"],
+                               min_val=1, max_val=240, step=1,
+                               subtitle="Idle warning notification timeout"),
+                self._spin_row("Lock timeout (minutes)",
+                               ["hypridle", "lockMinutes"],
+                               min_val=1, max_val=480, step=1,
+                               subtitle="Session lock timeout"),
             ]),
-            self._group("Paths", [
-                self._entry_row("Steam Workshop",  ["paths", "steamWorkshop"]),
-                self._entry_row("Steam WE assets", ["paths", "steamWeAssets"]),
-            ]),
+            self._group("Source", [
+                self._info_row("Config file", str(HYPRIDLE_CONF_PATH)),
+            ], description="Save applies changes into ~/.config/hypr/hypridle.conf and restarts hypridle"),
         ])
 
     def _build_integrations_page(self) -> Adw.PreferencesPage:
@@ -1172,6 +1863,52 @@ class ConfigWindow(Adw.ApplicationWindow):
                 self._spin_row("Notification expire", ["intervals", "notificationExpireMs"],
                                min_val=500,  max_val=30_000, step=500),
             ]),
+        ])
+
+    def _build_startup_apps_page(self) -> Adw.PreferencesPage:
+        groups = []
+
+        controls = [
+            self._info_row("Source", str(STARTUP_APPS_PATH)),
+        ]
+        toggle = Adw.SwitchRow(title="Show system entries")
+        toggle.set_active(self._startup_show_system)
+
+        def on_show_system(r, _p):
+            self._startup_show_system = r.get_active()
+            self._refresh_pages()
+
+        toggle.connect("notify::active", on_show_system)
+        controls.insert(0, toggle)
+        groups.append(self._group("Visibility", controls))
+
+        user_rows = []
+        system_rows = []
+        for app in self._startup_apps:
+            row = self._startup_switch_row(app)
+            if app.get("system"):
+                system_rows.append(row)
+            else:
+                user_rows.append(row)
+
+        if user_rows:
+            groups.append(self._group("Startup apps", user_rows, description="Toggle optional applications launched at session start"))
+        if self._startup_show_system and system_rows:
+            groups.append(self._group("System entries", system_rows, description="Hidden helpers required for the desktop session"))
+        if not user_rows and not system_rows:
+            groups.append(self._group("Startup apps", [self._info_row("No entries", "No exec-once commands were detected")]))
+
+        return self._page(groups)
+
+    def _build_window_rules_page(self) -> Adw.PreferencesPage:
+        rows = [self._info_row("Source", str(WINDOW_RULES_PATH))]
+        if not self._workspace_rules:
+            rows.append(self._info_row("No rules", "No workspace rules were found in WindowRules.conf"))
+        else:
+            for rule in self._workspace_rules:
+                rows.append(self._workspace_rule_row(rule))
+        return self._page([
+            self._group("Workspace assignment", rows, description="Only the target workspace is editable; matching rules stay intact"),
         ])
 
     def _build_keybinds_page(self) -> Adw.PreferencesPage:

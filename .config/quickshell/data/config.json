@@ -2,9 +2,9 @@
   "_comment": "Main configuration for skwd. Copy this file to config.json and edit to match your setup.",
   "compositor": "hyprland",
   "paths": {
-    "scripts": "",
+    "scripts": "~/.config/hypr/scripts",
     "cache": "~/.cache/quickshell",
-    "wallpaper": "~/wallpaper",
+    "wallpaper": "~/Pictures/wallpapers",
     "steamWorkshop": "~/.local/share/Steam/steamapps/workshop/content/431960",
     "steamWeAssets": "~/.local/share/Steam/steamapps/common/wallpaper_engine/assets",
     "steam": "~/.local/share/Steam"
@@ -40,11 +40,22 @@
   },
   "terminal": "kitty",
   "power": {
-    "deviceType": "auto",
+    "deviceType": "desktop",
     "profile": "performance"
   },
   "optimization": {
-    "enabled": false
+    "enabled": false,
+    "toggles": {
+      "disableBorders": false,
+      "disableTransparency": false,
+      "disableAnimations": false,
+      "disableBlur": false,
+      "disableShadows": false,
+      "disableRounding": false,
+      "disableGaps": false,
+      "disableDimInactive": false
+    },
+    "restoreState": null
   },
   "wallpaperMute": true,
   "components": {
@@ -108,5 +119,14 @@
     },
     "smartHome": false,
     "notifications": true
+  },
+  "hypridle": {
+    "enabled": true,
+    "warnMinutes": 9,
+    "lockMinutes": 10,
+    "ignoreDbusInhibit": false
+  },
+  "appearance": {
+    "colorMode": "dark"
   }
 }

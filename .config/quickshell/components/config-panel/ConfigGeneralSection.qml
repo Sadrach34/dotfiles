@@ -84,9 +84,65 @@ Column {
   ConfigSectionTitle { text: "OPTIMIZACION"; topPad: 16; colors: root.colors }
 
   ConfigToggle {
-    label: "Modo optimizacion (sin animaciones/blur/redondeado)"
+    label: "Optimization mode (solo wallpapers)"
     checked: panel.getNested(panel.configData, ["optimization", "enabled"], false)
     onToggled: v => { panel.setNested(panel.configData, ["optimization", "enabled"], v); panel.configDataChanged() }
+    colors: root.colors
+  }
+
+  ConfigToggle {
+    label: "Quitar bordes"
+    checked: panel.getNested(panel.configData, ["optimization", "toggles", "disableBorders"], false)
+    onToggled: v => { panel.setNested(panel.configData, ["optimization", "toggles", "disableBorders"], v); panel.configDataChanged() }
+    colors: root.colors
+  }
+
+  ConfigToggle {
+    label: "Quitar transparencia"
+    checked: panel.getNested(panel.configData, ["optimization", "toggles", "disableTransparency"], false)
+    onToggled: v => { panel.setNested(panel.configData, ["optimization", "toggles", "disableTransparency"], v); panel.configDataChanged() }
+    colors: root.colors
+  }
+
+  ConfigToggle {
+    label: "Quitar animaciones"
+    checked: panel.getNested(panel.configData, ["optimization", "toggles", "disableAnimations"], false)
+    onToggled: v => { panel.setNested(panel.configData, ["optimization", "toggles", "disableAnimations"], v); panel.configDataChanged() }
+    colors: root.colors
+  }
+
+  ConfigToggle {
+    label: "Quitar blur"
+    checked: panel.getNested(panel.configData, ["optimization", "toggles", "disableBlur"], false)
+    onToggled: v => { panel.setNested(panel.configData, ["optimization", "toggles", "disableBlur"], v); panel.configDataChanged() }
+    colors: root.colors
+  }
+
+  ConfigToggle {
+    label: "Quitar sombras"
+    checked: panel.getNested(panel.configData, ["optimization", "toggles", "disableShadows"], false)
+    onToggled: v => { panel.setNested(panel.configData, ["optimization", "toggles", "disableShadows"], v); panel.configDataChanged() }
+    colors: root.colors
+  }
+
+  ConfigToggle {
+    label: "Quitar redondeado"
+    checked: panel.getNested(panel.configData, ["optimization", "toggles", "disableRounding"], false)
+    onToggled: v => { panel.setNested(panel.configData, ["optimization", "toggles", "disableRounding"], v); panel.configDataChanged() }
+    colors: root.colors
+  }
+
+  ConfigToggle {
+    label: "Quitar gaps"
+    checked: panel.getNested(panel.configData, ["optimization", "toggles", "disableGaps"], false)
+    onToggled: v => { panel.setNested(panel.configData, ["optimization", "toggles", "disableGaps"], v); panel.configDataChanged() }
+    colors: root.colors
+  }
+
+  ConfigToggle {
+    label: "Quitar dim inactive"
+    checked: panel.getNested(panel.configData, ["optimization", "toggles", "disableDimInactive"], false)
+    onToggled: v => { panel.setNested(panel.configData, ["optimization", "toggles", "disableDimInactive"], v); panel.configDataChanged() }
     colors: root.colors
   }
 }
