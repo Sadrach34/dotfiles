@@ -46,14 +46,14 @@
   "optimization": {
     "enabled": false,
     "toggles": {
-      "disableBorders": true,
-      "disableTransparency": true,
-      "disableAnimations": true,
-      "disableBlur": true,
-      "disableShadows": true,
-      "disableRounding": true,
-      "disableGaps": true,
-      "disableDimInactive": true
+      "disableBorders": false,
+      "disableTransparency": false,
+      "disableAnimations": false,
+      "disableBlur": false,
+      "disableShadows": false,
+      "disableRounding": false,
+      "disableGaps": false,
+      "disableDimInactive": false
     },
     "restoreState": null
   },
@@ -90,12 +90,12 @@
     "lockscreen": false,
     "appLauncher": {
       "enabled": true,
-      "backend": "rofi"
+      "backend": "quickshell"
     },
     "wallpaperSelector": {
       "enabled": true,
       "showColorDots": false,
-      "backend": "rofi",
+      "backend": "quickshell",
       "autoChangeEnabled": false
     },
     "windowSwitcher": true,

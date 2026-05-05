@@ -89,12 +89,13 @@
       "hexRows": 2,
       "activeCustomPreset": "C1_slices",
       "autoChangeMode": "random",
-      "autoChangeIntervalMinutes": 10,
+      "autoChangeIntervalMinutes": 2,
       "autoChangeEnabled": false,
       "filterBarBgColor": "#000000"
     }
   },
   "wallpaperMute": true,
+  "sameWallpaperAllMonitors": false,
   "performance": {
     "imageOptimizePreset": "quality",
     "imageOptimizeResolution": "1080p",

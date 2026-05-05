@@ -119,8 +119,74 @@ if (( ${#MONITORS[@]} == 0 )); then
 	exit 1
 fi
 
+# Apply same wallpaper to all non-vertical monitors if flag is set
+SAME_WALL=$(jq -r '.sameWallpaperAllMonitors // false' "$SKWD_CONFIG_FILE" 2>/dev/null || echo "false")
+SAME_WALL_DONE=0
+if [[ "$SAME_WALL" == "true" ]]; then
+	primary_mon=""
+	for _m in "${MONITORS[@]}"; do
+		[[ -z "$_m" ]] && continue
+		if [[ "$(get_wall_dir_for_monitor "$_m")" != *"Vertical"* ]]; then
+			primary_mon="$_m"
+			break
+		fi
+	done
+	if [[ -n "$primary_mon" ]]; then
+		SW_DIR="$(get_wall_dir_for_monitor "$primary_mon")"
+		SW_DIRNAME="$(basename "$SW_DIR")"
+		SW_INCLUDE_WE=0
+		[[ "$SW_DIRNAME" == "wallpapers" ]] && SW_INCLUDE_WE=1
+		SW_CACHE="$CACHE_DIR/random-${SW_DIRNAME}.bin"
+		sw_stale=1
+		if [[ -f "$SW_CACHE" ]]; then
+			sw_now="$(date +%s)"
+			sw_ts="$(stat -c %Y "$SW_CACHE" 2>/dev/null || echo 0)"
+			if (( sw_now - sw_ts <= CACHE_TTL )) && [[ "$SW_DIR" -ot "$SW_CACHE" ]]; then
+				sw_stale=0
+			fi
+		fi
+		(( sw_stale )) && rebuild_cache_for_dir "$SW_DIR" "$SW_CACHE" "$SW_INCLUDE_WE"
+		mapfile -d '' SW_FILES < "$SW_CACHE"
+		if (( ${#SW_FILES[@]} > 0 )); then
+			SW_CURRENT="$(resolve_current_key_for_monitor "$primary_mon" || true)"
+			sw_idx=$(( RANDOM % ${#SW_FILES[@]} ))
+			CHOSEN="${SW_FILES[$sw_idx]%$'\0'}"
+			if (( ${#SW_FILES[@]} > 1 )) && [[ -n "$SW_CURRENT" ]]; then
+				for _ in {1..8}; do
+					[[ "$CHOSEN" != "$SW_CURRENT" ]] && break
+					sw_idx=$(( RANDOM % ${#SW_FILES[@]} ))
+					CHOSEN="${SW_FILES[$sw_idx]%$'\0'}"
+				done
+			fi
+			if [[ "$CHOSEN" == we:* ]]; then
+				for _m in "${MONITORS[@]}"; do
+					[[ -z "$_m" ]] && continue
+					[[ "$(get_wall_dir_for_monitor "$_m")" == *"Vertical"* ]] && continue
+					run_apply_for_monitor "$_m" "we" "${CHOSEN#we:}"
+				done
+			else
+				SW_TYPE="image"
+				SW_LOWER="${CHOSEN,,}"
+				if [[ "$SW_LOWER" == *.mp4 || "$SW_LOWER" == *.mkv || "$SW_LOWER" == *.mov || "$SW_LOWER" == *.webm || "$SW_LOWER" == *.avi ]]; then
+					SW_TYPE="video"
+				fi
+				for _m in "${MONITORS[@]}"; do
+					[[ -z "$_m" ]] && continue
+					[[ "$(get_wall_dir_for_monitor "$_m")" == *"Vertical"* ]] && continue
+					run_apply_for_monitor "$_m" "$SW_TYPE" "$CHOSEN"
+				done
+			fi
+			SAME_WALL_DONE=1
+		fi
+	fi
+fi
+
 for mon in "${MONITORS[@]}"; do
 	[[ -z "$mon" ]] && continue
+	# non-vertical monitors already handled above in same-wall mode
+	if (( SAME_WALL_DONE )); then
+		[[ "$(get_wall_dir_for_monitor "$mon")" != *"Vertical"* ]] && continue
+	fi
 
 	WALL_DIR="$(get_wall_dir_for_monitor "$mon")"
 	WALL_DIRNAME="$(basename "$WALL_DIR")"

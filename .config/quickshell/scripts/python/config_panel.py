@@ -27,6 +27,7 @@ WAYBAR_STYLES_DIR    = HOME / ".config/waybar/style"
 WAYBAR_CONFIG_LINK   = HOME / ".config/waybar/config"
 WAYBAR_STYLE_LINK    = HOME / ".config/waybar/style.css"
 WAYBAR_STARTUP_LOG   = HOME / ".cache/quickshell/waybar-startup.log"
+SKWD_WALL_CONFIG_PATH = HOME / ".config/skwd-wall/config.json"
 
 KNOWN_TERMINALS = [
     "kitty",
@@ -708,10 +709,13 @@ class ConfigWindow(Adw.ApplicationWindow):
         if get_nested(self._config, ["appearance", "colorMode"], None) is None:
             set_nested(self._config, ["appearance", "colorMode"], _read_theme_mode())
         self._apps   = load_json(APPS_PATH)
+        self._skwd_wall_config = load_json(SKWD_WALL_CONFIG_PATH)
         self._defaults_config = deepcopy(self._config)
         self._defaults_apps   = deepcopy(self._apps)
+        self._defaults_skwd_wall_config = deepcopy(self._skwd_wall_config)
         self._saved_config    = deepcopy(self._config)
         self._saved_apps      = deepcopy(self._apps)
+        self._saved_skwd_wall_config = deepcopy(self._skwd_wall_config)
         self._unsaved = False
 
         self._selected_terminal = _read_userdefaults_terminal()
@@ -954,6 +958,7 @@ class ConfigWindow(Adw.ApplicationWindow):
         return {
             "config.json": CONFIG_PATH,
             "apps.json": APPS_PATH,
+            "skwd-wall/config.json": SKWD_WALL_CONFIG_PATH,
             "Keybinds.conf": KEYBINDS_SYSTEM_PATH,
             "UserKeybinds.conf": KEYBINDS_USER_PATH,
             "01-UserDefaults.conf": USER_DEFAULTS_PATH,
@@ -998,6 +1003,8 @@ class ConfigWindow(Adw.ApplicationWindow):
     def _reload_from_disk(self, changed: list[str] | None = None):
         self._config = load_json(CONFIG_PATH)
         self._apps = load_json(APPS_PATH)
+        self._skwd_wall_config = load_json(SKWD_WALL_CONFIG_PATH)
+        self._saved_skwd_wall_config = deepcopy(self._skwd_wall_config)
         self._load_keybinds()
         self._selected_terminal = _read_userdefaults_terminal()
         self._selected_compositor = _read_compositor()
@@ -1036,6 +1043,7 @@ class ConfigWindow(Adw.ApplicationWindow):
         self._normalize_apps_data()
         save_json(CONFIG_PATH, self._config)
         save_json(APPS_PATH, self._apps)
+        save_json(SKWD_WALL_CONFIG_PATH, self._skwd_wall_config)
 
         cur_bar = get_nested(self._config, ["components", "bar", "enabled"], True)
         cur_cfg_raw = get_nested(self._config, ["components", "bar", "waybarConfig"], "~/.config/waybar/config")
@@ -1146,6 +1154,7 @@ class ConfigWindow(Adw.ApplicationWindow):
 
         self._saved_config = deepcopy(self._config)
         self._saved_apps   = deepcopy(self._apps)
+        self._saved_skwd_wall_config = deepcopy(self._skwd_wall_config)
         self._suppress_external_reload_until = time.time() + 1.2
         self._mark_saved()
         self._reload_banner.set_revealed(False)
@@ -1156,6 +1165,7 @@ class ConfigWindow(Adw.ApplicationWindow):
     def _on_discard(self, _widget):
         self._config = deepcopy(self._saved_config)
         self._apps   = deepcopy(self._saved_apps)
+        self._skwd_wall_config = deepcopy(self._saved_skwd_wall_config)
         self._keybinds_all = deepcopy(self._keybinds_saved)
         self._selected_terminal = _read_userdefaults_terminal()
         self._selected_compositor = _read_compositor()
@@ -1172,6 +1182,7 @@ class ConfigWindow(Adw.ApplicationWindow):
     def _on_defaults(self, _widget):
         self._config = deepcopy(self._defaults_config)
         self._apps   = deepcopy(self._defaults_apps)
+        self._skwd_wall_config = deepcopy(self._defaults_skwd_wall_config)
         self._selected_terminal = _read_userdefaults_terminal()
         self._selected_compositor = _read_compositor()
         self._selected_gpu_vendor = _read_gpu_vendor()
@@ -1282,55 +1293,59 @@ class ConfigWindow(Adw.ApplicationWindow):
 
     # ── Row builders ──────────────────────────────────────────────────────────
 
-    def _entry_row(self, title: str, keys: list[str]) -> Adw.EntryRow:
+    def _entry_row(self, title: str, keys: list[str], config_src=None) -> Adw.EntryRow:
         row = Adw.EntryRow(title=title)
-        val = get_nested(self._config, keys, "")
+        cfg = config_src if config_src is not None else self._config
+        val = get_nested(cfg, keys, "")
         row.set_text(str(val) if val else "")
-        def on_changed(r, k=keys):
-            set_nested(self._config, k, r.get_text())
+        def on_changed(r, k=keys, c=cfg):
+            set_nested(c, k, r.get_text())
             self._mark_unsaved()
         row.connect("changed", on_changed)
         return row
 
-    def _switch_row(self, title: str, keys: list[str], subtitle: str = "") -> Adw.SwitchRow:
+    def _switch_row(self, title: str, keys: list[str], subtitle: str = "", config_src=None) -> Adw.SwitchRow:
         row = Adw.SwitchRow(title=title)
         if subtitle:
             row.set_subtitle(subtitle)
-        row.set_active(bool(get_nested(self._config, keys, False)))
-        def on_toggle(r, _p, k=keys):
-            set_nested(self._config, k, r.get_active())
+        cfg = config_src if config_src is not None else self._config
+        row.set_active(bool(get_nested(cfg, keys, False)))
+        def on_toggle(r, _p, k=keys, c=cfg):
+            set_nested(c, k, r.get_active())
             self._mark_unsaved()
         row.connect("notify::active", on_toggle)
         return row
 
-    def _combo_row(self, title: str, keys: list[str], choices: list[str]) -> Adw.ComboRow:
+    def _combo_row(self, title: str, keys: list[str], choices: list[str], config_src=None) -> Adw.ComboRow:
         row = Adw.ComboRow(title=title)
         store = Gtk.StringList()
         for c in choices:
             store.append(c)
         row.set_model(store)
-        val = get_nested(self._config, keys, choices[0] if choices else "")
+        cfg = config_src if config_src is not None else self._config
+        val = get_nested(cfg, keys, choices[0] if choices else "")
         if val in choices:
             row.set_selected(choices.index(val))
-        def on_changed(r, _p, k=keys, ch=choices):
+        def on_changed(r, _p, k=keys, ch=choices, c=cfg):
             idx = r.get_selected()
             if 0 <= idx < len(ch):
-                set_nested(self._config, k, ch[idx])
+                set_nested(c, k, ch[idx])
                 self._mark_unsaved()
         row.connect("notify::selected", on_changed)
         return row
 
     def _spin_row(self, title: str, keys: list[str],
-                  min_val=0, max_val=9_999_999, step=1, subtitle: str = "") -> Adw.SpinRow:
+                  min_val=0, max_val=9_999_999, step=1, subtitle: str = "", config_src=None) -> Adw.SpinRow:
+        cfg = config_src if config_src is not None else self._config
         adj = Gtk.Adjustment(
-            value=float(get_nested(self._config, keys, 0) or 0),
+            value=float(get_nested(cfg, keys, 0) or 0),
             lower=min_val, upper=max_val, step_increment=step,
         )
         row = Adw.SpinRow(title=title, adjustment=adj)
         if subtitle:
             row.set_subtitle(subtitle)
-        def on_changed(r, k=keys):
-            set_nested(self._config, k, int(r.get_value()))
+        def on_changed(r, k=keys, c=cfg):
+            set_nested(c, k, int(r.get_value()))
             self._mark_unsaved()
         row.connect("changed", on_changed)
         return row
@@ -1707,10 +1722,19 @@ class ConfigWindow(Adw.ApplicationWindow):
                                 ["grid", "list", "hex", "slice"]),
                 self._color_mode_row(),
                 self._switch_row("Auto change",
-                                 ["components", "wallpaperSelector", "autoChangeEnabled"]),
+                                 ["components", "wallpaperSelector", "autoChangeEnabled"],
+                                 config_src=self._skwd_wall_config),
+                self._combo_row("Auto change mode",
+                                ["components", "wallpaperSelector", "autoChangeMode"],
+                                ["random", "next"],
+                                config_src=self._skwd_wall_config),
                 self._spin_row("Auto change interval (minutes)",
                                ["components", "wallpaperSelector", "autoChangeIntervalMinutes"],
-                               min_val=1, max_val=1440, step=5),
+                               min_val=1, max_val=1440, step=5,
+                               config_src=self._skwd_wall_config),
+                self._switch_row("Same wallpaper all monitors",
+                                 ["sameWallpaperAllMonitors"],
+                                 config_src=self._skwd_wall_config),
                 self._spin_row("Columns",
                                ["components", "wallpaperSelector", "wallhavenColumns"],
                                min_val=1, max_val=20),
