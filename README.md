@@ -205,6 +205,30 @@ Projects and people that served as inspiration or reference:
 
 ---
 
+
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Sadrach34/SdrxDots&type=Date)](https://star-history.com/#Sadrach34/SdrxDots&Date)
+
+## 🤝 Contribution
+
+<div align="center">
+  We welcome contributions of all kinds — bug fixes, new features, documentation improvements, and more.<br>
+  Please read our <a href=".github/CONTRIBUTING.md"><strong>Contributing Guide</strong></a> before submitting a pull request.
+</div>
+
+<br>
+
+<div align="center">
+  We thank all our contributors for their valuable contributions.
+</div>
+
+<div align="center">
+  <a href="https://github.com/Sadrach34/SdrxDots/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=Sadrach34/SdrxDots" style="border-radius: 15px; box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);" />
+  </a>
+</div>
+
 ## License
 
 This repository is distributed under **GNU General Public License v3.0 (GPLv3)**.
