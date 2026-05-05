@@ -5,7 +5,8 @@
 
 # WALLPAPERS PATH
 terminal=kitty
-wallDIR="$HOME/Pictures/wallpapers"
+_transform=$(grep -oP 'monitor=HDMI-A-1,transform,\K[0-9]+' "$HOME/.config/hypr/monitors.conf" 2>/dev/null || echo "0")
+wallDIR="$HOME/Pictures/$([[ "$_transform" == "1" ]] && echo "wallpaperVertical" || echo "wallpapers")"
 SCRIPTSDIR="$HOME/.config/hypr/scripts"
 wallpaper_current="$HOME/.config/hypr/.wallpaper_current"
 

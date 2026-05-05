@@ -10,9 +10,10 @@ fi
 
 TYPE="$1"
 FILE="$2"
+WALL_OUTPUT="${WALL_OUTPUT:-}"
 WALLPAPER_CURRENT="$HOME/.config/hypr/wallpaper_effects/.wallpaper_current"
 STARTUP="$HOME/.config/hypr/UserConfigs/Startup_Apps.conf"
-SKWD_STATE_FILE="$HOME/.cache/skwd-wall/last-wallpaper.json"
+SKWD_STATE_FILE="$HOME/.cache/skwd-wall/last-wallpaper${WALL_OUTPUT:+-$WALL_OUTPUT}.json"
 LOCK_DIR="$HOME/.cache/hypr/wallpaper-apply.lock.d"
 SKWD_CONFIG_FILE="$HOME/.config/skwd-wall/config.json"
 DEFAULT_WE_DIR="$HOME/.local/share/Steam/steamapps/workshop/content/431960"
@@ -232,7 +233,11 @@ set_startup_mode_image() {
 
 current_static_path() {
   local line
-  line="$($WALL_CMD query 2>/dev/null | head -n 1 || true)"
+  if [[ -n "$WALL_OUTPUT" ]]; then
+    line="$($WALL_CMD query 2>/dev/null | grep "^${WALL_OUTPUT}:" | head -n 1 || true)"
+  else
+    line="$($WALL_CMD query 2>/dev/null | head -n 1 || true)"
+  fi
   printf '%s' "$line" | sed -n 's/.*currently displaying: image: \([^,]*\).*/\1/p'
 }
 
@@ -240,15 +245,17 @@ apply_static_once() {
   local target="$1"
   local params="$2"
   # shellcheck disable=SC2086
-  "$WALL_CMD" img "$target" $params >/dev/null 2>&1
+  if [[ -n "$WALL_OUTPUT" ]]; then
+    "$WALL_CMD" img -o "$WALL_OUTPUT" "$target" $params >/dev/null 2>&1
+  else
+    "$WALL_CMD" img "$target" $params >/dev/null 2>&1
+  fi
 }
 
 ensure_static_applied() {
   local target="$1"
   local force_settle="$2"
   if [[ "$WALL_CMD" == "awww" ]]; then
-    # awww query output does not provide a reliable current file path.
-    # Only force a no-transition settle when coming from video/WE.
     if [[ "$force_settle" == "1" ]]; then
       apply_static_once "$target" "--transition-type none --transition-duration 0"
     fi
@@ -261,6 +268,11 @@ ensure_static_applied() {
   shown="$(current_static_path)"
   shown="$(readlink -f "$shown" 2>/dev/null || printf '%s' "$shown")"
   if [[ -n "$shown" && "$shown" == "$target_abs" ]]; then
+    return 0
+  fi
+
+  if [[ -n "$WALL_OUTPUT" ]]; then
+    apply_static_once "$target" "--transition-type none --transition-duration 0"
     return 0
   fi
 
@@ -277,6 +289,7 @@ ensure_static_applied() {
 
 restart_wall_backend() {
   [[ -z "$WALL_DAEMON_CMD" ]] && return 0
+  [[ -n "$WALL_OUTPUT" ]] && return 0
   pkill -TERM -x "$WALL_DAEMON_CMD" 2>/dev/null || true
   sleep 0.12
   "$WALL_DAEMON_CMD" --format "$WALL_DAEMON_FORMAT" >/dev/null 2>&1 &
@@ -286,16 +299,24 @@ kill_for_video() {
   if [[ -z "$WALL_CMD" ]]; then
     detect_wall_backend || true
   fi
-  [[ -n "$WALL_CMD" ]] && "$WALL_CMD" kill 2>/dev/null
-  stop_we_engine
-  stop_video_wallpaper
+  if [[ -n "$WALL_OUTPUT" ]]; then
+    pkill -f "mpvpaper[[:space:]]+${WALL_OUTPUT}([[:space:]]|$)" 2>/dev/null || true
+  else
+    [[ -n "$WALL_CMD" ]] && "$WALL_CMD" kill 2>/dev/null
+    stop_we_engine
+    stop_video_wallpaper
+  fi
   pkill swaybg 2>/dev/null
   pkill hyprpaper 2>/dev/null
 }
 
 kill_for_image() {
   stop_we_engine
-  stop_video_wallpaper
+  if [[ -n "$WALL_OUTPUT" ]]; then
+    pkill -f "mpvpaper[[:space:]]+${WALL_OUTPUT}([[:space:]]|$)" 2>/dev/null || true
+  else
+    stop_video_wallpaper
+  fi
   pkill swaybg 2>/dev/null
   pkill hyprpaper 2>/dev/null
 }
@@ -334,10 +355,10 @@ if [[ "$TYPE" == "we" ]]; then
 elif [[ "$TYPE" == "video" ]]; then
   ensure_state_dirs
   kill_for_video
-  mpvpaper '*' -o "--load-scripts=no --no-audio --loop --panscan=1.0" "$FILE" >/dev/null 2>&1 &
+  mpvpaper "${WALL_OUTPUT:-*}" -o "--load-scripts=no --no-audio --loop --panscan=1.0" "$FILE" >/dev/null 2>&1 &
   ln -sf "$FILE" "$WALLPAPER_CURRENT" 2>/dev/null
   write_skwd_state "video"
-  set_startup_mode_video
+  [[ -z "$WALL_OUTPUT" ]] && set_startup_mode_video
 else
   ensure_state_dirs
   if ! detect_wall_backend; then
@@ -385,7 +406,7 @@ else
   ln -sf "$FILE" "$WALLPAPER_CURRENT" 2>/dev/null
   ln -sf "$FILE" "$HOME/.config/rofi/.current_wallpaper" 2>/dev/null
   write_skwd_state "static"
-  set_startup_mode_image
+  [[ -z "$WALL_OUTPUT" ]] && set_startup_mode_image
 fi
 
 # set_startup_mode_* modifica Startup_Apps.conf → Hyprland recarga → pierde keyword overrides.
