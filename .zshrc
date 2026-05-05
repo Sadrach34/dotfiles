@@ -174,3 +174,12 @@ alias sdrxdotsctl='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
 # opencode
 export PATH=/home/sadrach/.opencode/bin:$PATH
+
+# bun completions
+[ -s "/home/sadrach/.bun/_bun" ] && source "/home/sadrach/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+alias claude-mem='/home/sadrach/.bun/bin/bun "/home/sadrach/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs"'

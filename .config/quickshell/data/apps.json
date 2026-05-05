@@ -2,7 +2,7 @@
   "_comment": "App customization for the launcher and window switcher. Each key is matched case-insensitively against the .desktop Name field.",
   "_usage": "Each value is an object with optional fields: background (image path), icon (nerd font glyph), displayName (custom name shown in UI), hidden (true to hide from launcher), tags (space-separated searchable tags).",
   "about xfce": {
-    "icon": "\udb80\udc04",
+    "icon": "󰀄",
     "background": "~/Documentos/Apps(NOBORRAR)/asdd.jpg"
   },
   "advanced network configuration": {
@@ -10,6 +10,7 @@
   },
   "android file transfer (mtp)": {},
   "antigravity": {},
+  "astroneer": {},
   "audacity": {},
   "avahi ssh server browser": {},
   "avahi vnc server browser": {},
@@ -20,11 +21,11 @@
   "bitwarden": {},
   "blender": {},
   "bluetooth adapters": {
-    "icon": "\udb80\udcb0",
+    "icon": "󰂰",
     "background": "~/dotfiles/.config/quickshell/images/apps/bluetooth.webp"
   },
   "bluetooth manager": {
-    "icon": "\udb80\udcaf",
+    "icon": "󰂯",
     "background": "~/dotfiles/.config/quickshell/images/apps/bluetooth.webp"
   },
   "borderlands goty enhanced": {},
@@ -33,11 +34,11 @@
   "cairo-dock": {},
   "cairo-dock (fallback mode)": {},
   "cmake": {},
-  "dark souls\u2122 ii: scholar of the first sin": {},
-  "dark souls\u2122: remastered": {},
+  "dark souls™ ii: scholar of the first sin": {},
+  "dark souls™: remastered": {},
   "discord": {
     "background": "~/.config/quickshell/images/apps/discord.webp",
-    "icon": "\udb81\ude6f",
+    "icon": "󰙯",
     "displayName": "Totally Not Discord",
     "tags": [
       "chat voice call kitten"
@@ -51,7 +52,7 @@
   "electron 37": {},
   "fallout 4": {},
   "firefox": {
-    "icon": "\udb80\ude39",
+    "icon": "󰈹",
     "displayName": "Firefox",
     "tags": [
       "browser web"
@@ -68,9 +69,10 @@
   "hollow knight: silksong": {},
   "htop": {},
   "icon browser": {},
-  "idle slayer \u2013 incremental rpg": {},
+  "idle slayer – incremental rpg": {},
   "image viewer": {},
   "immortal redneck": {},
+  "insomnia": {},
   "jetbrains toolbox": {},
   "kdenlive": {},
   "kdiskmark": {},
@@ -97,10 +99,11 @@
   "onlyoffice": {},
   "openjdk java 26 console": {},
   "openjdk java 26 shell": {},
-  "overwatch\u00ae": {},
-  "overwatch\u00ae 2": {},
+  "overwatch®": {},
+  "overwatch® 2": {},
   "photogimp": {},
   "piper": {},
+  "postman": {},
   "protonplus": {},
   "protontricks": {},
   "pwvucontrol": {},
@@ -113,6 +116,7 @@
   "qt widgets designer": {},
   "qt5 settings": {},
   "removable drives and media": {},
+  "replicube demo": {},
   "rider 2025.2.2": {},
   "rofi": {},
   "rofi theme selector": {},
@@ -128,6 +132,7 @@
     "background": "~/dotfiles/.config/quickshell/images/apps/steam.jpg"
   },
   "system monitor": {},
+  "the binding of isaac: rebirth": {},
   "thunar file manager": {},
   "thunar preferences": {},
   "timeshift": {},
@@ -136,7 +141,7 @@
   "uuctl": {},
   "vim": {},
   "visual studio code": {
-    "icon": "\udb82\ude1e",
+    "icon": "󰨞",
     "background": "~/dotfiles/.config/quickshell/images/apps/vscode.jpg"
   },
   "vlc media player": {},

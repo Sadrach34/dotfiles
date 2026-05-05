@@ -9,7 +9,7 @@ rofi_theme="$HOME/.config/rofi/config-rofi-ssh.rasi"
 
 # Datos del servidor (tu laptop)
 SERVER_USER="sadrach"
-SERVER_IP="192.168.1.50"
+SERVER_IP="192.168.1.5"
 SERVER_PORT="22"
 SERVER_NAME="Mi Laptop"
 
@@ -25,7 +25,7 @@ FILE_EXPLORER="thunar"
 
 # 1. Abrir una terminal con conexión SSH
 open_ssh_terminal() {
-  kitty ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_IP"
+  kitty --hold -- ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_IP"
 }
 
 # 2. Enviar un comando al servidor sin abrir una terminal interactiva

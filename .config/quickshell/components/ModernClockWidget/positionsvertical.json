@@ -1,0 +1,13 @@
+{
+  "default": {
+    "enabled": true,
+    "centerOnScreen": false,
+    "centerX": true,
+    "centerY": false,
+    "x": 0,
+    "y": 800,
+    "daySize": 90,
+    "dateSize": 25,
+    "timeSize": 22
+  }
+}

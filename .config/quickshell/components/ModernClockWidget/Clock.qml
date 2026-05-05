@@ -55,8 +55,9 @@ PanelWindow {
         property int moveAnimMs: uiPerf.ms(320)
         property string pendingWeId: ""
         property string pendingWeProjectRaw: ""
-        readonly property string positionsFilePath: Quickshell.env("HOME") + "/.config/quickshell/components/ModernClockWidget/positions.json"
-        readonly property string skwdStateFilePath: Quickshell.env("HOME") + "/.cache/skwd-wall/last-wallpaper.json"
+        readonly property bool isVertical: targetScreen.height > targetScreen.width
+        readonly property string positionsFilePath: Quickshell.env("HOME") + "/.config/quickshell/components/ModernClockWidget/" + (isVertical ? "positionsvertical.json" : "positions.json")
+        readonly property string skwdStateFilePath: Quickshell.env("HOME") + "/.cache/skwd-wall/last-wallpaper-" + targetScreen.name + ".json"
 
         function shellQuote(s) {
             return "'" + String(s).replace(/'/g, "'\"'\"'") + "'"
