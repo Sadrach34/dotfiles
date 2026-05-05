@@ -12,8 +12,15 @@ Column {
 
   ConfigToggle {
     label: "App launcher"
-    checked: panel.getNested(panel.configData, ["components", "appLauncher"], true)
-    onToggled: v => { panel.setNested(panel.configData, ["components", "appLauncher"], v); panel.configDataChanged() }
+    checked: {
+      var al = panel.getNested(panel.configData, ["components", "appLauncher"], true)
+      if (typeof al === "boolean") return al
+      return al?.enabled !== false
+    }
+    onToggled: v => {
+      panel.setNested(panel.configData, ["components", "appLauncher", "enabled"], v)
+      panel.configDataChanged()
+    }
     colors: root.colors
   }
   ConfigToggle {

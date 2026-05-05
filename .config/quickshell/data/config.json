@@ -40,20 +40,20 @@
   },
   "terminal": "kitty",
   "power": {
-    "deviceType": "desktop",
+    "deviceType": "laptop",
     "profile": "performance"
   },
   "optimization": {
     "enabled": false,
     "toggles": {
-      "disableBorders": false,
-      "disableTransparency": false,
-      "disableAnimations": false,
-      "disableBlur": false,
-      "disableShadows": false,
-      "disableRounding": false,
-      "disableGaps": false,
-      "disableDimInactive": false
+      "disableBorders": true,
+      "disableTransparency": true,
+      "disableAnimations": true,
+      "disableBlur": true,
+      "disableShadows": true,
+      "disableRounding": true,
+      "disableGaps": true,
+      "disableDimInactive": true
     },
     "restoreState": null
   },
@@ -64,6 +64,8 @@
       "waybarConfig": "~/.config/waybar/configs/[TOP] Default",
       "waybarStyle": "~/.config/waybar/style/[Dark] Purpl.css",
       "enabled": true,
+      "topPanel": true,
+      "dashboard": true,
       "weather": {
         "enabled": false,
         "city": ""
@@ -86,10 +88,15 @@
       "waybarStylePreset": "[Dark] Purpl"
     },
     "lockscreen": false,
-    "appLauncher": true,
+    "appLauncher": {
+      "enabled": true,
+      "backend": "rofi"
+    },
     "wallpaperSelector": {
       "enabled": true,
-      "showColorDots": false
+      "showColorDots": false,
+      "backend": "rofi",
+      "autoChangeEnabled": false
     },
     "windowSwitcher": true,
     "powerMenu": {

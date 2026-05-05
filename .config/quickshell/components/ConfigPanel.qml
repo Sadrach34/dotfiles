@@ -24,6 +24,7 @@ Scope {
     { icon: "󰒓", label: "GENERAL" },
     { icon: "󰎛", label: "BAR" },
     { icon: "󰕰", label: "COMPONENTS" },
+    { icon: "󰮘", label: "QUICK/ROFI" },
     { icon: "󰓅", label: "POWER" },
     { icon: "󰸉", label: "WALLPAPER" },
     { icon: "󰌹", label: "INTEGRATIONS" },
@@ -61,6 +62,8 @@ Scope {
   property string _lastSavedPowerProfile: "performance"
   property bool _lastSavedOptimizationEnabled: false
   property string _lastSavedOptimizationJson: ""
+  property bool _lastSavedTopPanel: true
+  property bool _lastSavedDashboard: true
 
   readonly property bool _noTransparency: getNested(configData, ["optimization", "toggles", "disableTransparency"], false)
 
@@ -122,6 +125,8 @@ Scope {
       _lastSavedPowerProfile = getNested(configData, ["power", "profile"], "performance")
       _lastSavedOptimizationEnabled = getNested(configData, ["optimization", "enabled"], false)
       _lastSavedOptimizationJson = JSON.stringify(configData.optimization || {})
+      _lastSavedTopPanel = getNested(configData, ["components", "bar", "topPanel"], true)
+      _lastSavedDashboard = getNested(configData, ["components", "bar", "dashboard"], true)
       configDataChanged()
     } catch (e) {
       console.log("ConfigPanel: Failed to parse config.json:", e)
@@ -253,16 +258,22 @@ Scope {
       var currentOptimizationJson = JSON.stringify(configData.optimization || {})
       var optimizationChanged = currentOptimizationEnabled !== _lastSavedOptimizationEnabled
           || currentOptimizationJson !== _lastSavedOptimizationJson
+      var currentTopPanel = getNested(configData, ["components", "bar", "topPanel"], true)
+      var currentDashboard = getNested(configData, ["components", "bar", "dashboard"], true)
+      var layoutChanged = currentTopPanel !== _lastSavedTopPanel || currentDashboard !== _lastSavedDashboard
       configFile.setText(JSON.stringify(configData, null, 2) + "\n")
       appsFile.setText(JSON.stringify(appsData, null, 2) + "\n")
       if (barChanged) _applyWaybarEnabled(currentBarEnabled)
       if (powerChanged) _applyPowerFromConfig()
       if (optimizationChanged) _applyOptimizationEnabled(currentOptimizationEnabled)
+      if (layoutChanged) waybarLayoutProcess.running = true
       _lastSavedBarEnabled = currentBarEnabled
       _lastSavedPowerDeviceType = currentPowerDeviceType
       _lastSavedPowerProfile = currentPowerProfile
       _lastSavedOptimizationEnabled = currentOptimizationEnabled
       _lastSavedOptimizationJson = currentOptimizationJson
+      _lastSavedTopPanel = currentTopPanel
+      _lastSavedDashboard = currentDashboard
       hasUnsavedChanges = false
       postSaveReloadTimer.restart()
     } catch (e) {
@@ -283,6 +294,11 @@ Scope {
   Process {
     id: optimizationApplyProcess
     command: ["bash", "-lc", "true"]
+  }
+
+  Process {
+    id: waybarLayoutProcess
+    command: ["bash", "-lc", Quickshell.env("HOME") + "/.config/hypr/UserScripts/ApplyWaybarLayout.sh"]
   }
 
   Timer {
@@ -648,51 +664,58 @@ Scope {
               colors: configPanel.colors
             }
 
-            ConfigPowerSection {
+            ConfigQuickshellRofiSection {
               width: parent.width
               visible: configPanel.currentSection === 3
               panel: configPanel
               colors: configPanel.colors
             }
 
+            ConfigPowerSection {
+              width: parent.width
+              visible: configPanel.currentSection === 4
+              panel: configPanel
+              colors: configPanel.colors
+            }
+
             ConfigWallpaperSection {
-              width: parent.width
-              visible: configPanel.currentSection === 4
-              panel: configPanel
-              colors: configPanel.colors
-            }
-
-            ConfigWallpaperAdvancedSection {
-              width: parent.width
-              visible: configPanel.currentSection === 4
-              panel: configPanel
-              colors: configPanel.colors
-            }
-
-            ConfigIntegrationsSection {
               width: parent.width
               visible: configPanel.currentSection === 5
               panel: configPanel
               colors: configPanel.colors
             }
 
-            ConfigAppsSection {
+            ConfigWallpaperAdvancedSection {
+              width: parent.width
+              visible: configPanel.currentSection === 5
+              panel: configPanel
+              colors: configPanel.colors
+            }
+
+            ConfigIntegrationsSection {
               width: parent.width
               visible: configPanel.currentSection === 6
               panel: configPanel
               colors: configPanel.colors
             }
 
-            ConfigIntervalsSection {
+            ConfigAppsSection {
               width: parent.width
               visible: configPanel.currentSection === 7
               panel: configPanel
               colors: configPanel.colors
             }
 
-            ConfigKeybindsSection {
+            ConfigIntervalsSection {
               width: parent.width
               visible: configPanel.currentSection === 8
+              panel: configPanel
+              colors: configPanel.colors
+            }
+
+            ConfigKeybindsSection {
+              width: parent.width
+              visible: configPanel.currentSection === 9
               panel: configPanel
               colors: configPanel.colors
             }

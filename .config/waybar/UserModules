@@ -19,6 +19,13 @@
         "on-click": "if pgrep -x quickshell >/dev/null; then qs ipc call toppanel toggle; else quickshell >/dev/null 2>&1 & sleep 0.6; qs ipc call toppanel toggle; fi",
         "tooltip": true,
         "tooltip-format": "QuickShell Dashboard"
+},
+
+"custom/power_button": {
+        "format": "⏻",
+        "on-click": "$HOME/.config/hypr/UserScripts/PowerMenuRofi.sh",
+        "tooltip": true,
+        "tooltip-format": "Power Menu (Rofi)"
 }
 
 }

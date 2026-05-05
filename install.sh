@@ -339,7 +339,7 @@ install_base_packages_pacman() {
     mpv-mpris yt-dlp libnotify socat \
     thunar thunar-archive-plugin thunar-volman xarchiver unrar \
     android-file-transfer android-tools android-udev timeshift \
-    brightnessctl ddcutil xdotool ydotool wtype
+    brightnessctl ddcutil xdotool ydotool wtype bc
 
   pacman_install \
     ttf-jetbrains-mono ttf-jetbrains-mono-nerd \
@@ -497,7 +497,8 @@ install_animation_stack() {
     nwg-displays nwg-look \
     qt5ct kvantum \
     matugen wallust \
-    mpvpaper
+    mpvpaper \
+    bc
 
   ensure_yay
   yay_install \

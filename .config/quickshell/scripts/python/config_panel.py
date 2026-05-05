@@ -677,7 +677,7 @@ PAGES = [
     ("Screen",       "video-display-symbolic"),
     ("Components",   "view-app-grid-symbolic"),
     ("Power",        "battery-symbolic"),
-    ("Hypridle",     "preferences-system-time-symbolic"),
+    ("Rofi/Quickshell", "preferences-desktop-wallpaper-symbolic"),
     ("Integrations", "applications-engineering-symbolic"),
     ("Apps",         "applications-symbolic"),
     ("Intervals",    "preferences-system-time-symbolic"),
@@ -796,7 +796,7 @@ class ConfigWindow(Adw.ApplicationWindow):
             self._build_screen_page,
             self._build_components_page,
             self._build_power_page,
-            self._build_hypridle_page,
+            self._build_rofi_quickshell_page,
             self._build_integrations_page,
             self._build_apps_page,
             self._build_intervals_page,
@@ -1725,7 +1725,7 @@ class ConfigWindow(Adw.ApplicationWindow):
     def _build_components_page(self) -> Adw.PreferencesPage:
         return self._page([
             self._group("Components", [
-                self._switch_row("App launcher",    ["components", "appLauncher"]),
+                self._switch_row("App launcher",    ["components", "appLauncher", "enabled"]),
                 self._switch_row("Window switcher", ["components", "windowSwitcher"]),
                 self._switch_row("Notifications",   ["components", "notifications"]),
                 self._switch_row("Lockscreen",      ["components", "lockscreen"]),
@@ -1752,27 +1752,22 @@ class ConfigWindow(Adw.ApplicationWindow):
             ]),
         ])
 
-    def _build_hypridle_page(self) -> Adw.PreferencesPage:
+    def _build_rofi_quickshell_page(self) -> Adw.PreferencesPage:
         return self._page([
-            self._group("Daemon", [
-                self._switch_row("Enabled", ["hypridle", "enabled"],
-                                 subtitle="Start or stop hypridle when saving settings"),
-                self._switch_row("Ignore DBus inhibit", ["hypridle", "ignoreDbusInhibit"],
-                                 subtitle="Maps to ignore_dbus_inhibit in hypridle.conf"),
+            self._group("App Launcher", [
+                self._switch_row("Enabled",        ["components", "appLauncher", "enabled"]),
+                self._combo_row("Backend",         ["components", "appLauncher", "backend"], ["quickshell", "rofi"]),
             ]),
-            self._group("Timeouts", [
-                self._spin_row("Warn timeout (minutes)",
-                               ["hypridle", "warnMinutes"],
-                               min_val=1, max_val=240, step=1,
-                               subtitle="Idle warning notification timeout"),
-                self._spin_row("Lock timeout (minutes)",
-                               ["hypridle", "lockMinutes"],
-                               min_val=1, max_val=480, step=1,
-                               subtitle="Session lock timeout"),
+            self._group("Wallpaper Selector", [
+                self._switch_row("Enabled",        ["components", "wallpaperSelector", "enabled"]),
+                self._combo_row("Backend",         ["components", "wallpaperSelector", "backend"], ["quickshell", "rofi"]),
+                self._switch_row("Show color dots", ["components", "wallpaperSelector", "showColorDots"]),
             ]),
-            self._group("Source", [
-                self._info_row("Config file", str(HYPRIDLE_CONF_PATH)),
-            ], description="Save applies changes into ~/.config/hypr/hypridle.conf and restarts hypridle"),
+            self._group("Waybar Modules", [
+                self._switch_row("Top Panel",      ["components", "bar", "topPanel"]),
+                self._switch_row("Dashboard",      ["components", "bar", "dashboard"]),
+            ]),
+            self._group("Auto-start", [], "Quickshell se inicia automáticamente solo si al menos uno de sus componentes está habilitado."),
         ])
 
     def _build_integrations_page(self) -> Adw.PreferencesPage:
