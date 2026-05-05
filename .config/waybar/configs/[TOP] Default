@@ -1,8 +1,8 @@
-// ### DEFAULT - Top (dual monitor: eDP-1 + VGA-1 vertical) ### //
+// ### DEFAULT - Top (dual monitor: DP-1 primary + HDMI-A-1 vertical) ### //
 [
   {
-    // Bar 1: Main monitor (eDP-1) - horizontal
-    "output": "eDP-1",
+    // Bar 1: Main monitor (DP-1) - horizontal
+    "output": "DP-1",
     "include": [
       "$HOME/.config/waybar/Modules",
       "$HOME/.config/waybar/ModulesWorkspaces",
@@ -52,8 +52,8 @@
     ]
   },
   {
-    // Bar 2: Vertical monitor (VGA-1) - no cava, no network
-    "output": "VGA-1",
+    // Bar 2: Secondary monitor (HDMI-A-1) - no cava, no network
+    "output": "HDMI-A-1",
     "include": [
       "$HOME/.config/waybar/Modules",
       "$HOME/.config/waybar/ModulesWorkspaces",
